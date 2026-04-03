@@ -13,16 +13,16 @@ cloudinary.config({
 
 // writing upload handler function
 
-const uploadOnCloudinary = async function (path){
+const uploadOnCloudinary = async function (LocalFilePath){
         try {
-            if(!path) return null;
-          const response =   await cloudinary.uploader.upload('path',{
+            if(!LocalFilePath) return null;
+          const response =   await cloudinary.uploader.upload('LocalFilePath',{
             resource_type:"auto"
           });
           console.log('file uploaded on cloudinary successFully.',response.url);
           return response;
         } catch (error) {
-            fs.unlinkSync(path) // unlink the file which is locally uploaded on my sytem if upload operation got failed.
+            fs.unlinkSync(LocalFilePath) // unlink the file which is locally uploaded on my sytem if upload operation got failed.
             return null;
         }
 }
