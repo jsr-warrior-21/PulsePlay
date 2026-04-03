@@ -1,10 +1,11 @@
 import {Router} from 'express';
 import { userRegister } from '../controllers/user.controller.js';
+
 import {upload} from '../middlewares/multer.middleware.js'
 
 const router = Router();
 
-
+// register
 router.route("/register").post(
     upload.fields([ // so this is the way for using middleware before controller and after route
      {
@@ -19,5 +20,11 @@ router.route("/register").post(
 userRegister
 );
 // http://localhost:8000/api/v1/users/register -> like this wo wala prefix ban jayega.
+
+
+// login
+
+router.route("/login").post(user)
+
 
 export default router;
