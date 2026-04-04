@@ -53,11 +53,12 @@ const userSchema = new mongoose.Schema(
 // i have used if condition so that hashing of passing may not happen again and again happened only when any king of changes occur in the password.
 
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+  if (!this.isModified("password")) return ;
   try {
     this.password = await bcrypt.hash(this.password, 10);
+    // next();
   } catch (error) {
-    next(error);
+   throw error;
   }
 });
 

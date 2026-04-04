@@ -4,6 +4,7 @@ import { User } from "../models/users.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { upload } from "../middlewares/multer.middleware.js";
+import jwt from "jsonwebtoken";
 
 // here we have made a method for the so that we can directly get access and refreshToken
 const generateAccessandRefreshToken = async (userId) => {
@@ -19,10 +20,8 @@ const generateAccessandRefreshToken = async (userId) => {
     // phir usko user ko bhi return krr diya
     return { accessToken, refreshToken };
   } catch (error) {
-    throw new ApiError(
-      500,
-      "Failed in generating refreshToken or accessToken."
-    );
+    console.error("DETAILED ERROR:", error.message);
+    throw new ApiError(500, `Internal Error: ${error.message}`);
   }
 };
 
@@ -120,7 +119,7 @@ const loginUser = asyncHandler(async function (req, res) {
 
   //1. checking if user have all field - you must think that mujhe email se login krwana hai ki email se.
 
-  if (!email || !username) {
+  if (!(email || username)) {
     throw new ApiError(400, "username or password require.");
   }
   //2. dono basis prr search krna jo pahle mill jaye in database
@@ -197,10 +196,6 @@ Security Monitoring:
 Tum track kar sakte ho ki ek user ne kitne alag-alag devices se login kiya hua hai.
      */
 
-
-
-
-
   //6. now send in the cookie to the user
 
   //"Bhai, database se user ka data lao, lekin password aur wahan pehle se pada hua refreshToken mat laana
@@ -233,26 +228,94 @@ Tum track kar sakte ho ki ek user ne kitne alag-alag devices se login kiya hua h
     );
 });
 
-
-
 // user logout
 
-const logOutUser = asyncHandler(async function(req,res){
-
+const logOutUser = asyncHandler(async function (req, res) {
   // jbb maine middleware me req.user = user kiya to abb req ke pass mera sbb kuchh aa gaya hai
 
- await User.findByIdAndUpdate(req.user._id,{$set:{refreshToken:undefined}},{new:true});
+  await User.findByIdAndUpdate(
+    req.user._id,
+    { $set: { refreshToken: undefined } },
+    { new: true }
+  );
 
- const options = {
-  httpOnly:true,
-  secure:true
- }
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
 
- return res.status(200).clearCookie("accessToken",options).clearCookie("refreshToken",options).json( new ApiResponse(200,"","User LoggedOut successfully."))
+  return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, "", "User LoggedOut successfully."));
+});
+
+// refreshing accessToken
+
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  try {
+    const refreshTokenForRefreshingAccessToken =
+      req.cookies.refreshToken || req.body.refreshToken;
+  
+    if (!refreshTokenForRefreshingAccessToken) {
+      throw new ApiError(401, "Unauthorized Request");
+    }
+  
+    /**
+  1. REFRESH_TOKEN_SECRET ka asli kaam kya hai?
+  ---> Sochiye ki REFRESH_TOKEN_SECRET ek "Special Signature" ya "Sarkari Mohar" (Official Stamp) ki tarah hai.
+  -->Jab aapne pehli baar token generate kiya tha, toh aapne user ka data (Payload) liya aur usme apni secret key (REFRESH_TOKEN_SECRET) milakar ek unique hash banaya.
+  --->jwt.verify ka kaam ye check karna hai ki kya ye token waqayi aapke server ne hi issue kiya tha?
+  --->Agar koi hacker token mein ek bhi character badal de (jaise user ID change kar de), toh secret key ke bina woh valid signature nahi bana payega. jwt.verify turant error phenk dega ki "Signature Invalid".
+     */
+  
+    const decodedToken = jwt.verify(
+      refreshTokenForRefreshingAccessToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
+  
+  
+    /**
+     * Jab aap jwt.verify() function ko call karte hain, toh agar token valid hai, toh ye function aapko Token ka Payload (Decoded Object) return karta hai.
+     * Ye Payload wahi data hota hai jo aapne token create (sign) karte waqt uske andar dala tha (jaise _id, email, ya username).
+     */
+  
+  
+  
+    // refresh token generate krte time maine use as a payload _id send kari to mai abb uss id ka use krke db se user ko find krr lunga
+  
+    const user = await User.findById(decodedToken?._id);
+  
+    if(!user){
+      throw new ApiError(401,"Invalid Refresh Token.")
+    }
+  
+    if(refreshTokenForRefreshingAccessToken !== user?.refreshToken){
+      throw new ApiError(401,"Refresh Token Expired again Login.")
+    }
+    //agar match hua  - to new access and refresh token generate krke again wahi kaam cookie me send aur db me save
+  
+  
+    // jbb bhi cookie me kuchh bhejna ho to always use this two pro for consistacy and from preventing with hacker or accessing
+      const options = {
+        httpOnly:true,
+        secure:true
+      }
+  
+      const {accessToken,refreshToken} = await generateAccessandRefreshToken(user._id);
+      
+      // in cookie's argument first one is key: seconed one is value: and third one is security 
+      return res
+      .status(200)
+      .cookie("accessToken",accessToken,options)
+      .cookie("refreshToken",refreshToken,options)
+      .json(new ApiResponse(201,"New accessToken generated successfully."));
+  } catch (error) {
+     throw new ApiError(401,"Invalid refreshToken.");
+  }
 
 
 });
 
-
-
-export { userRegister, loginUser,logOutUser };
+export { userRegister, loginUser, logOutUser, refreshAccessToken };
