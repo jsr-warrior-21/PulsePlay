@@ -318,90 +318,251 @@ const changePassword = asyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.body;
   const user = await User.findById(req.user?._id);
   const isPasswordCorrect = await user.isPasswordCorrect(oldPassword); // jbb bhi method ko call karo to user.method krke  call karo kyuki wo uske ander as a object hi rahta hai
-  if(!isPasswordCorrect){
-    throw new ApiError(401,"Password is not correct.")
+  if (!isPasswordCorrect) {
+    throw new ApiError(401, "Password is not correct.");
   }
 
   user.password = newPassword;
-  await user.save({validateBeforeSave:false}); // kuch bhi validation mtt karo before saving
-  return res.status(201).json((new ApiResponse(200,{},"Password successfully Canged.")))
-
-
+  await user.save({ validateBeforeSave: false }); // kuch bhi validation mtt karo before saving
+  return res
+    .status(201)
+    .json(new ApiResponse(200, {}, "Password successfully Canged."));
 });
 
-const getCurrentUser = asyncHandler((req,res)=>{
-  return res.status(200).json(new ApiResponse(200,req.user,"Current user got successfully."));
+const getCurrentUser = asyncHandler((req, res) => {
+  return res
+    .status(200)
+    .json(new ApiResponse(200, req.user, "Current user got successfully."));
 });
 
+const updateAccountDetails = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
 
-const updateAccountDetails = asyncHandler(async(req,res)=>{
-  const {email,password} = req.body;
-
-  if(!email || !fullName){
-    throw new ApiError(400,"All Fields require")
+  if (!email || !fullName) {
+    throw new ApiError(400, "All Fields require");
   }
 
-   const updatedUser = await User.findByIdAndUpdate(req.user._id,{$set:{email,fullName}},{new:true}).select("-password");
-    if(!updatedUser){
-      throw new ApiError(400,"unauthorized user.");
-    }
-  return res.status(200).json(new ApiResponse(200,updatedUser,"name and email successfully Updated."))
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user._id,
+    { $set: { email, fullName } },
+    { new: true }
+  ).select("-password");
+  if (!updatedUser) {
+    throw new ApiError(400, "unauthorized user.");
+  }
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, updatedUser, "name and email successfully Updated.")
+    );
+});
+
+const updateUserAvatar = asyncHandler(async (req, res) => {
+  const avatarLocalPath = req.file?.path;
+  if (!avatarLocalPath) {
+    throw new ApiError(400, "avatar file is missing");
+  }
+
+  const avatar = await uploadOnCloudinary(avatarLocalPath);
+  if (!avatar) {
+    throw new ApiError(500, "Error while uploading avatar on cloudinary.");
+  }
+
+  const isUpdated = await User.findByIdAndUpdate(
+    req.user._id,
+    { $set: { avatar: avatar.url } },
+    { new: true }
+  ).select("-password");
+  if (!isUpdated) {
+    throw new ApiError(500, "Error while updating the avatar file.");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, isUpdated, "avatar updated succseesfully."));
+});
+
+const updateUserCoverImage = asyncHandler(async (req, res) => {
+  const coverImageLocalPath = req.file?.path;
+  if (!coverImageLocalPath) {
+    throw new ApiError(400, "coverImage file is missing");
+  }
+
+  const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+  if (!coverImage) {
+    throw new ApiError(500, "Error while uploading coverImage on cloudinary.");
+  }
+
+  const isUpdated = await User.findByIdAndUpdate(
+    req.user._id,
+    { $set: { coverImage: coverImage.url } },
+    { new: true }
+  ).select("-password");
+  if (!isUpdated) {
+    throw new ApiError(500, "Error while updating the coverImage file.");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, isUpdated, "coverImage updated succseesfully."));
+});
+
+// importent - aggregation logic here ---> handler for getting subscriber count and whose channel have you followed
+
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+  const { username } = req.params; // /user/:id --> means route me hi
+  if (!username?.trim()) {
+    throw new ApiError(200, "username is missing.");
+  }
+
+  const channel = User.aggregate([
+    // first pipeline -- ki kis basic prr kare
+
+    {
+      //Yeh User collection mein us bande ko dhund raha hai jiska username match karta ho
+      $match: {
+        username: username?.toLowerCase(),
+      },
+    },
+
+    // second pipeline--> now counting subscriber
+
+    /**
+        * Logic:Aapki current user ID (_id) ko subscriptionmodels collection ke channel field mein dhund raha hai.
+         Result: Jitne logon ne is user ko subscribe kiya hai, unki list ek array ban kar subscribers naam ke field mein aa jayegi.
+        */
+    {
+      $lookup: {
+        from: "subscriptionmodels",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers",
+      },
+    },
+
+    // third pipeline for counting --> whose have you subscribed.
+    /**
+        * Yahan aapki _id ko subscriptionmodels ke subscriber field mein dhund raha hai.
+          Result: Jin channels ko is user ne subscribe kiya hai, unki list subscribedTo array mein aa jayegi.
+        */
+    {
+      $lookup: {
+        from: "subscriptionmodels",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedTo",
+      },
+    },
+    {
+      $addFields: {
+        subscriberCount: {
+          $size: "$subscribers",
+        },
+        subscribedToCount: {
+          $size: "$subscribedTo",
+        },
+        // for subscribe || subscribed button in frontend.
+        isSubscribed: {
+          $cond: {
+            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+            then: true,
+            else: false,
+          },
+        },
+      },
+    },
+    {
+      // ye kuchh selected things ko hi project krta hai or deta hai
+      $project: {
+        fullName: 1,
+        userName: 1,
+        email: 1,
+        isSubscribed: 1,
+        subscriberCount: 1,
+        subscribedToCount: 1,
+        avatar: 1,
+        coverImage: 1,
+      },
+    },
+  ]);
+
+  // what aggregate return --->  it return array of object
+
+  if (!channel?.length) {
+    throw new ApiError(404, "Channel doesn't exist.");
+  }
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, channel[0], "User channel fetched successfully.")
+    );
+
+  // yaha maine channel[0] return kiya kyuki sabhi object same jaisa hoga array me to kewal ek ko hi reference diya so that frontend ko pata chal jaye ki ye ye hai.
+});
+
+// again aggregation pipeline --> finding the watch history of an user
+
+const getWatchHistory = asyncHandler(async (req, res) => {
+  const user = User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(req.user?._id),
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project:{
+                    fullName:1,
+                    username:1,
+                    avatar:1
+                  }
+                }
+              ],
+            },
+          },
+          {
+            $addFields:{
+                owner:{
+                  $first:"$owner"
+                }
+            }
+          },
+          {
+
+          }
+        ],
+      },
+    },
+  ]);
+
+  res.status(200).json(new ApiResponse(200,user[0].watchHistory,"WatchHistory fetched successfully."))
 
 });
 
-
-const updateUserAvatar =  asyncHandler(async(req,res)=>{
-    const avatarLocalPath = req.file?.path
-    if(!avatarLocalPath){
-      throw new ApiError(400,"avatar file is missing");
-    }
-
-    const avatar = await uploadOnCloudinary(avatarLocalPath);
-    if(!avatar){
-      throw new ApiError(500,"Error while uploading avatar on cloudinary.");
-    }
-
-   const isUpdated =  await User.findByIdAndUpdate(req.user._id,{$set:{avatar:avatar.url}},{new:true}).select("-password");
-    if(!isUpdated){
-      throw new ApiError(500,"Error while updating the avatar file.");
-    }
-
-    return res.status(200).json(new ApiResponse(200,isUpdated,"avatar updated succseesfully."))
-
-
-});
-
-
-
-const updateUserCoverImage =  asyncHandler(async(req,res)=>{
-    const coverImageLocalPath = req.file?.path
-    if(!coverImageLocalPath){
-      throw new ApiError(400,"coverImage file is missing");
-    }
-
-    const coverImage = await uploadOnCloudinary(coverImageLocalPath);
-    if(!coverImage){
-      throw new ApiError(500,"Error while uploading coverImage on cloudinary.");
-    }
-
-   const isUpdated =  await User.findByIdAndUpdate(req.user._id,{$set:{coverImage:coverImage.url}},{new:true}).select("-password");
-    if(!isUpdated){
-      throw new ApiError(500,"Error while updating the coverImage file.");
-    }
-
-    return res.status(200).json(new ApiResponse(200,isUpdated,"coverImage updated succseesfully."));
-
-
-});
-
-
-export { userRegister
-  , loginUser
-  , logOutUser
-  , refreshAccessToken
-  , changePassword
-  ,getCurrentUser
-  ,updateAccountDetails,
+export {
+  userRegister,
+  loginUser,
+  logOutUser,
+  refreshAccessToken,
+  changePassword,
+  getCurrentUser,
+  updateAccountDetails,
   updateUserAvatar,
-  updateUserCoverImage
+  updateUserCoverImage,
+  getUserChannelProfile,
+  getWatchHistory,
 };
