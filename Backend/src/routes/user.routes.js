@@ -1,7 +1,8 @@
 import {Router} from 'express';
-import { userRegister } from '../controllers/user.controller.js';
+import { loginUser, logOutUser, userRegister } from '../controllers/user.controller.js';
 
 import {upload} from '../middlewares/multer.middleware.js'
+import { verifyJWT } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
@@ -23,8 +24,10 @@ userRegister
 
 
 // login
+router.route('/login').post(loginUser);
 
-router.route("/login").post(user)
-
+// secured routes 
+router.route('/logout').post(verifyJWT,logOutUser); // yaha maine middleware ko insect krr diya before running the logoutuser functionality
+// aur issi liye mai middleware me next() call krta hu so that verifyJWT function chalne ke baad logOutUser run ho.
 
 export default router;
