@@ -257,11 +257,11 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   try {
     const refreshTokenForRefreshingAccessToken =
       req.cookies.refreshToken || req.body.refreshToken;
-  
+
     if (!refreshTokenForRefreshingAccessToken) {
       throw new ApiError(401, "Unauthorized Request");
     }
-  
+
     /**
   1. REFRESH_TOKEN_SECRET ka asli kaam kya hai?
   ---> Sochiye ki REFRESH_TOKEN_SECRET ek "Special Signature" ya "Sarkari Mohar" (Official Stamp) ki tarah hai.
@@ -269,53 +269,139 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   --->jwt.verify ka kaam ye check karna hai ki kya ye token waqayi aapke server ne hi issue kiya tha?
   --->Agar koi hacker token mein ek bhi character badal de (jaise user ID change kar de), toh secret key ke bina woh valid signature nahi bana payega. jwt.verify turant error phenk dega ki "Signature Invalid".
      */
-  
+
     const decodedToken = jwt.verify(
       refreshTokenForRefreshingAccessToken,
       process.env.REFRESH_TOKEN_SECRET
     );
-  
-  
+
     /**
      * Jab aap jwt.verify() function ko call karte hain, toh agar token valid hai, toh ye function aapko Token ka Payload (Decoded Object) return karta hai.
      * Ye Payload wahi data hota hai jo aapne token create (sign) karte waqt uske andar dala tha (jaise _id, email, ya username).
      */
-  
-  
-  
+
     // refresh token generate krte time maine use as a payload _id send kari to mai abb uss id ka use krke db se user ko find krr lunga
-  
+
     const user = await User.findById(decodedToken?._id);
-  
-    if(!user){
-      throw new ApiError(401,"Invalid Refresh Token.")
+
+    if (!user) {
+      throw new ApiError(401, "Invalid Refresh Token.");
     }
-  
-    if(refreshTokenForRefreshingAccessToken !== user?.refreshToken){
-      throw new ApiError(401,"Refresh Token Expired again Login.")
+
+    if (refreshTokenForRefreshingAccessToken !== user?.refreshToken) {
+      throw new ApiError(401, "Refresh Token Expired again Login.");
     }
     //agar match hua  - to new access and refresh token generate krke again wahi kaam cookie me send aur db me save
-  
-  
+
     // jbb bhi cookie me kuchh bhejna ho to always use this two pro for consistacy and from preventing with hacker or accessing
-      const options = {
-        httpOnly:true,
-        secure:true
-      }
-  
-      const {accessToken,refreshToken} = await generateAccessandRefreshToken(user._id);
-      
-      // in cookie's argument first one is key: seconed one is value: and third one is security 
-      return res
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    const { accessToken, refreshToken } = await generateAccessandRefreshToken(
+      user._id
+    );
+
+    // in cookie's argument first one is key: seconed one is value: and third one is security
+    return res
       .status(200)
-      .cookie("accessToken",accessToken,options)
-      .cookie("refreshToken",refreshToken,options)
-      .json(new ApiResponse(201,"New accessToken generated successfully."));
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", refreshToken, options)
+      .json(new ApiResponse(201, "New accessToken generated successfully."));
   } catch (error) {
-     throw new ApiError(401,"Invalid refreshToken.");
+    throw new ApiError(401, "Invalid refreshToken.");
   }
+});
+
+const changePassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  const user = await User.findById(req.user?._id);
+  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword); // jbb bhi method ko call karo to user.method krke  call karo kyuki wo uske ander as a object hi rahta hai
+  if(!isPasswordCorrect){
+    throw new ApiError(401,"Password is not correct.")
+  }
+
+  user.password = newPassword;
+  await user.save({validateBeforeSave:false}); // kuch bhi validation mtt karo before saving
+  return res.status(201).json((new ApiResponse(200,{},"Password successfully Canged.")))
 
 
 });
 
-export { userRegister, loginUser, logOutUser, refreshAccessToken };
+const getCurrentUser = asyncHandler((req,res)=>{
+  return res.status(200).json(new ApiResponse(200,req.user,"Current user got successfully."));
+});
+
+
+const updateAccountDetails = asyncHandler(async(req,res)=>{
+  const {email,password} = req.body;
+
+  if(!email || !fullName){
+    throw new ApiError(400,"All Fields require")
+  }
+
+   const updatedUser = await User.findByIdAndUpdate(req.user._id,{$set:{email,fullName}},{new:true}).select("-password");
+    if(!updatedUser){
+      throw new ApiError(400,"unauthorized user.");
+    }
+  return res.status(200).json(new ApiResponse(200,updatedUser,"name and email successfully Updated."))
+
+});
+
+
+const updateUserAvatar =  asyncHandler(async(req,res)=>{
+    const avatarLocalPath = req.file?.path
+    if(!avatarLocalPath){
+      throw new ApiError(400,"avatar file is missing");
+    }
+
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+    if(!avatar){
+      throw new ApiError(500,"Error while uploading avatar on cloudinary.");
+    }
+
+   const isUpdated =  await User.findByIdAndUpdate(req.user._id,{$set:{avatar:avatar.url}},{new:true}).select("-password");
+    if(!isUpdated){
+      throw new ApiError(500,"Error while updating the avatar file.");
+    }
+
+    return res.status(200).json(new ApiResponse(200,isUpdated,"avatar updated succseesfully."))
+
+
+});
+
+
+
+const updateUserCoverImage =  asyncHandler(async(req,res)=>{
+    const coverImageLocalPath = req.file?.path
+    if(!coverImageLocalPath){
+      throw new ApiError(400,"coverImage file is missing");
+    }
+
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+    if(!coverImage){
+      throw new ApiError(500,"Error while uploading coverImage on cloudinary.");
+    }
+
+   const isUpdated =  await User.findByIdAndUpdate(req.user._id,{$set:{coverImage:coverImage.url}},{new:true}).select("-password");
+    if(!isUpdated){
+      throw new ApiError(500,"Error while updating the coverImage file.");
+    }
+
+    return res.status(200).json(new ApiResponse(200,isUpdated,"coverImage updated succseesfully."));
+
+
+});
+
+
+export { userRegister
+  , loginUser
+  , logOutUser
+  , refreshAccessToken
+  , changePassword
+  ,getCurrentUser
+  ,updateAccountDetails,
+  updateUserAvatar,
+  updateUserCoverImage
+};
