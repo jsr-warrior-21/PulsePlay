@@ -42,13 +42,10 @@ const userRegister = asyncHandler(async (req, res) => {
 
   //2. check if user already exist.
 
-  const userExisted = await User.findOne({
-    $or: [{ username }, { email }], //  ye or krr krr ke username email dono ko check karega ki iss username or email ka koi user already exist to nahi krtaa
-  });
-
+  const userExisted = await User.findOne({ $or: [{ username }, { email }] });
   if (userExisted) {
-    // dekh rahe ho kitna easy ho raha hai ApiError ka use krke Error ko throw krna nahi to res.status(409).json({success:false,message:"user already exist with this name and email"})
-    throw new ApiError(422, "with this username and email user already exist.");
+    console.log("EXISTING USER FOUND:", userExisted); // Ye line dalo
+    throw new ApiError(422, "User already exists");
   }
 
   //3. handle the avatar and coverImage
@@ -526,29 +523,36 @@ const getWatchHistory = asyncHandler(async (req, res) => {
               as: "owner",
               pipeline: [
                 {
-                  $project:{
-                    fullName:1,
-                    username:1,
-                    avatar:1
-                  }
-                }
+                  $project: {
+                    fullName: 1,
+                    username: 1,
+                    avatar: 1,
+                  },
+                },
               ],
             },
           },
           {
-            $addFields:{
-                owner:{
-                  $first:"$owner"
-                }
-            }
+            $addFields: {
+              owner: {
+                $first: "$owner",
+              },
+            },
           },
         ],
       },
     },
   ]);
 
-  res.status(200).json(new ApiResponse(200,user[0].watchHistory,"WatchHistory fetched successfully."))
-
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        user[0].watchHistory,
+        "WatchHistory fetched successfully."
+      )
+    );
 });
 
 export {
