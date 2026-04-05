@@ -9,6 +9,8 @@ import Signup from "./Signup";
 import Login from "./Login";
 import AuthLayout from "./AuthLayout";
 import VideoCard from "./VideoCard";
+import UploadVideo from "./UploadVideo";
+import Tweets from "./Tweets";
 
 export {
     Header,
@@ -22,4 +24,6 @@ export {
     Login,
     AuthLayout,
     VideoCard,
+    UploadVideo,
+    Tweets,
 }

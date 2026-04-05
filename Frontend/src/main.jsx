@@ -5,8 +5,14 @@ import './index.css'
 import { Provider } from 'react-redux'
 import store from './store/store.js'
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
+
+// Pages imports
 import Home from './pages/Home.jsx'
-import { AuthLayout, Login, Signup } from './components'
+import VideoDetail from './pages/VideoDetail.jsx'
+import MyChannel from './pages/MyChannel.jsx'
+
+// Sabhi components ko index.js se ek hi line mein mangao
+import { AuthLayout, Login, Signup, UploadVideo } from './components'
 
 const router = createBrowserRouter([
   {
@@ -33,6 +39,38 @@ const router = createBrowserRouter([
                 </AuthLayout>
             ),
         },
+        {
+            path: "/video/:videoId",
+            element: (
+                <AuthLayout authentication>
+                    <VideoDetail />
+                </AuthLayout>
+            ),
+        },
+        {
+            path: "/add-video",
+            element: (
+                <AuthLayout authentication>
+                    <UploadVideo />
+                </AuthLayout>
+            ),
+        },
+        {
+            path: "/all-videos",
+            element: (
+                <AuthLayout authentication>
+                    <Home />
+                </AuthLayout>
+            ),
+        },
+        {
+            path: "/my-channel",
+            element: (
+                <AuthLayout authentication>
+                    <MyChannel />
+                </AuthLayout>
+            ),
+        },
     ],
 },
 ])
@@ -40,7 +78,7 @@ const router = createBrowserRouter([
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <Provider store={store}>
-    <RouterProvider router={router}/>
+      <RouterProvider router={router}/>
     </Provider>
   </React.StrictMode>,
 )
