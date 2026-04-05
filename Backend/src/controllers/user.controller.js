@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/apiError.js";
 import { User } from "../models/users.model.js";
@@ -336,7 +337,7 @@ const getCurrentUser = asyncHandler((req, res) => {
 });
 
 const updateAccountDetails = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, fullName } = req.body;
 
   if (!email || !fullName) {
     throw new ApiError(400, "All Fields require");
@@ -415,7 +416,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     throw new ApiError(200, "username is missing.");
   }
 
-  const channel = User.aggregate([
+  const channel = await User.aggregate([
     // first pipeline -- ki kis basic prr kare
 
     {
@@ -504,7 +505,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
 // again aggregation pipeline --> finding the watch history of an user
 
 const getWatchHistory = asyncHandler(async (req, res) => {
-  const user = User.aggregate([
+  const user = await User.aggregate([
     {
       $match: {
         _id: new mongoose.Types.ObjectId(req.user?._id),
@@ -541,9 +542,6 @@ const getWatchHistory = asyncHandler(async (req, res) => {
                 }
             }
           },
-          {
-
-          }
         ],
       },
     },

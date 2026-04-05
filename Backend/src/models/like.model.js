@@ -14,7 +14,7 @@ const likeSchema = new mongoose.Schema(
       ref: "Comment",
     },
     likedBy: {
-      type: mongoose.Schema.Types.ObjectIdm,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
   },

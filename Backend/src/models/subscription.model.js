@@ -4,12 +4,12 @@ const subscriptionSchema = new mongoose.Schema(
 {
 
     subscriber:{
-        types: mongoose.Schema.Types.ObjectId, // one who will subscribe
-        type:"User"
+        type: mongoose.Schema.Types.ObjectId, // one who will subscribe
+        ref:"User"
     },
     channel:{
-        types: mongoose.Schema.Types.ObjectId, // one who will subscribe
-        type:"User"
+        type: mongoose.Schema.Types.ObjectId, // one who will subscribe
+        ref:"User"
     }
 },
 {
