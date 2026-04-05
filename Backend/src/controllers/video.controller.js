@@ -1,12 +1,11 @@
 import mongoose, { isValidObjectId } from "mongoose"
 import { Video } from "../models/video.model.js"
-import { User } from "../models/users.model.js"
 import { ApiError } from '../utils/apiError.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiResponse } from '../utils/apiResponse.js'
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 
-// 1. Get all videos (with filters, sorting and pagination)
+// 1. Get all videos (Home Page)
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
     
@@ -20,7 +19,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
         });
     }
 
-    // Filter by search query (title or description)
+    // Filter by search query
     if (query) {
         pipeline.push({
             $match: {
@@ -35,9 +34,33 @@ const getAllVideos = asyncHandler(async (req, res) => {
     // Sort logic
     const sortField = sortBy || "createdAt";
     const sortOrder = sortType === "asc" ? 1 : -1;
-    pipeline.push({
-        $sort: { [sortField]: sortOrder }
-    });
+    pipeline.push({ $sort: { [sortField]: sortOrder } });
+
+    // Populate owner details in aggregation
+    pipeline.push(
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $project: {
+                            username: 1,
+                            avatar: 1,
+                            fullName: 1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $addFields: {
+                owner: { $first: "$owner" }
+            }
+        }
+    );
 
     const videoAggregate = Video.aggregate(pipeline);
 
@@ -67,14 +90,16 @@ const publishAVideo = asyncHandler(async (req, res) => {
     if (!videoFileLocalPath) throw new ApiError(400, "Video file is missing");
     if (!thumbnailLocalPath) throw new ApiError(400, "Thumbnail is missing");
 
+    // Upload to Cloudinary
     const videoFile = await uploadOnCloudinary(videoFileLocalPath);
     const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
 
     if (!videoFile) throw new ApiError(400, "Video upload failed");
 
+    // FIX: Using secure_url to ensure HTTPS links
     const video = await Video.create({
-        videoFile: videoFile.url,
-        thumbnail: thumbnail?.url || "",
+        videoFile: videoFile.secure_url || videoFile.url,
+        thumbnail: thumbnail?.secure_url || thumbnail?.url || "",
         title,
         description,
         duration: videoFile.duration,
@@ -87,15 +112,20 @@ const publishAVideo = asyncHandler(async (req, res) => {
         .json(new ApiResponse(201, video, "Video published successfully"));
 })
 
-// 3. Get video by ID
+// 3. Get video by ID (Video Player Page)
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params
 
     if (!isValidObjectId(videoId)) throw new ApiError(400, "Invalid Video ID");
 
+    // FIX: Populate owner so frontend can show avatar and username
     const video = await Video.findById(videoId).populate("owner", "username fullName avatar");
 
     if (!video) throw new ApiError(404, "Video not found");
+
+    // Optional: Increment views
+    video.views += 1;
+    await video.save({ validateBeforeSave: false });
 
     return res
         .status(200)
@@ -110,12 +140,10 @@ const updateVideo = asyncHandler(async (req, res) => {
 
     if (!isValidObjectId(videoId)) throw new ApiError(400, "Invalid Video ID");
 
-    if (!title && !description && !thumbnailLocalPath) {
-        throw new ApiError(400, "At least one field is required to update");
-    }
-
     const video = await Video.findById(videoId);
-    if (video?.owner.toString() !== req.user?._id.toString()) {
+    if (!video) throw new ApiError(404, "Video not found");
+
+    if (video.owner.toString() !== req.user?._id.toString()) {
         throw new ApiError(403, "Unauthorized request");
     }
 
@@ -130,7 +158,7 @@ const updateVideo = asyncHandler(async (req, res) => {
             $set: {
                 title: title || video.title,
                 description: description || video.description,
-                thumbnail: thumbnail?.url || video.thumbnail
+                thumbnail: thumbnail?.secure_url || video.thumbnail
             }
         },
         { new: true }
@@ -154,7 +182,6 @@ const deleteVideo = asyncHandler(async (req, res) => {
         throw new ApiError(403, "Unauthorized request");
     }
 
-    // Note: Ideally, you should also delete the files from Cloudinary here
     await Video.findByIdAndDelete(videoId);
 
     return res

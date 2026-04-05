@@ -83,7 +83,7 @@ const userRegister = asyncHandler(async (req, res) => {
 
   const user = await User.create({
     fullName,
-    avatar: avatar.url,
+    avatar: avatar.secure_url,
     coverImage: coverImage?.url || "",
     email,
     password,
@@ -473,7 +473,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
       // ye kuchh selected things ko hi project krta hai or deta hai
       $project: {
         fullName: 1,
-        userName: 1,
+        username: 1,
         email: 1,
         isSubscribed: 1,
         subscriberCount: 1,
