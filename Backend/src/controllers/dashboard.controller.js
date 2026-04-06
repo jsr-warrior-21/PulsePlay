@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 import { Video } from "../models/video.model.js";
 import { subscriptionModel as Subscription } from "../models/subscription.model.js";
-import {likeModel as Like } from "../models/like.model.js";
-import {commentModel as Comment } from "../models/comment.model.js";
+import { likeModel as Like } from "../models/like.model.js";
+import { commentModel as Comment } from "../models/comment.model.js";
 import { Notification } from "../models/notification.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/apiResponse.js";
@@ -34,7 +34,13 @@ const getDashboardData = asyncHandler(async (req, res) => {
     },
   ]);
 
-  const totalSubscribers = await Subscription.countDocuments({ channel: userId });
+  const totalSubscribers = await Subscription.countDocuments({
+    channel: userId,
+  });
+
+  const channelsSubscribedTo = await Subscription.countDocuments({
+  subscriber: userId,
+});
 
   const statsData = statsAgg[0] || {};
   const stats = {
@@ -42,6 +48,7 @@ const getDashboardData = asyncHandler(async (req, res) => {
     totalVideos: statsData.totalVideos || 0,
     totalLikes: statsData.totalLikes || 0,
     totalSubscribers,
+    channelsSubscribedTo
   };
 
   // 2️ User Videos
@@ -61,7 +68,12 @@ const getDashboardData = asyncHandler(async (req, res) => {
 
   // 4️ Liked Videos
   const likedVideos = await Like.aggregate([
-    { $match: { likedBy: new mongoose.Types.ObjectId(userId), video: { $ne: null } } },
+    {
+      $match: {
+        likedBy: new mongoose.Types.ObjectId(userId),
+        video: { $ne: null },
+      },
+    },
     {
       $lookup: {
         from: "videos",
@@ -88,7 +100,9 @@ const getDashboardData = asyncHandler(async (req, res) => {
   ]);
 
   // 5️ Comments by User
-  const userComments = await Comment.find({ owner: userId }).sort({ createdAt: -1 });
+  const userComments = await Comment.find({ owner: userId }).sort({
+    createdAt: -1,
+  });
 
   // 6️ Subscriptions by User
   const subscribedChannels = await Subscription.aggregate([
@@ -107,15 +121,19 @@ const getDashboardData = asyncHandler(async (req, res) => {
   ]);
 
   return res.status(200).json(
-    new ApiResponse(200, {
-      stats,
-      videos,
-      likedVideos,
-      userComments,
-      subscribedChannels,
-      notifications,
-      unreadNotifications,
-    }, "Dashboard data fetched successfully")
+    new ApiResponse(
+      200,
+      {
+        stats,
+        videos,
+        likedVideos,
+        userComments,
+        subscribedChannels,
+        notifications,
+        unreadNotifications,
+      },
+      "Dashboard data fetched successfully"
+    )
   );
 });
 

@@ -15,6 +15,7 @@ import Dashboard from './pages/Dashboard.jsx'
 import Community from './pages/Community.jsx'
 import History from './pages/History.jsx'
 import Playlists from './pages/Playlists.jsx'
+import PlaylistVideos from './pages/PlaylistVideos.jsx'  
 import AddVideo from './pages/AddVideo.jsx'
 import SearchPage from './pages/SearchPage.jsx'
 import LikedVideos from './pages/LikedVideos.jsx'
@@ -33,6 +34,7 @@ const router = createBrowserRouter([
       { path: "/community", element: <Community /> },
       { path: "/history", element: <History /> },
       { path: "/playlists", element: <Playlists /> },
+      { path: "/playlist/:playlistId", element: <PlaylistVideos /> }, 
       { path: "/add-video", element: <AddVideo /> }, 
       { path: "/search", element: <SearchPage /> },
       { path: "/liked-videos", element: <LikedVideos /> },

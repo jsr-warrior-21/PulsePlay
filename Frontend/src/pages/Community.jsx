@@ -35,7 +35,7 @@ function Community() {
             <div className="bg-[#1a1a1a] p-6 rounded-3xl border border-gray-800 mb-8">
                 <textarea 
                     className="w-full bg-transparent text-lg outline-none border-none"
-                    placeholder="Bhai, kya chal raha hai?"
+                    placeholder="write your feed here....."
                     value={tweetContent}
                     onChange={(e) => setTweetContent(e.target.value)}
                 />

@@ -29,8 +29,9 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
     if (!isValidObjectId(userId)) {
         throw new ApiError(400, "Invalid User ID")
     }
-
-    const playlists = await Playlist.find({ owner: userId }).sort({ createdAt: -1 })
+    const playlists = await Playlist.find({ owner: userId })
+        .populate("videos") 
+        .sort({ createdAt: -1 })
 
     return res
         .status(200)
@@ -46,7 +47,10 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 
     const playlist = await Playlist.findById(playlistId).populate({
         path: "videos",
-        select: "videoFile thumbnail title duration views"
+        populate: {
+            path: "owner",
+            select: "username fullName avatar"
+        }
     })
 
     if (!playlist) {
