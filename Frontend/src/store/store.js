@@ -4,7 +4,7 @@ import authSlice from "./authSlice";
 const store = configureStore({
     reducer: {
         auth: authSlice,
-        // Baaki slices (video, tweet) baad mein yahan aayenge
+        // Yahan baki reducers add kar sakte ho
     }
 });
 
