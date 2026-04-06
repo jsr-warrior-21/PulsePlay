@@ -1,1 +1,14 @@
 @import "tailwindcss";
+/* Custom global styles */
+body {
+  @apply bg-gray-50 text-gray-800;
+  font-family: 'Inter', sans-serif;
+}
+
+a {
+  @apply text-blue-500 hover:text-blue-700;
+}
+
+button {
+  @apply cursor-pointer transition-colors;
+}

@@ -2,26 +2,27 @@ import mongoose from "mongoose";
 
 const notificationSchema = new mongoose.Schema(
   {
-    user: { // the user who receives the notification
+    user: {
+      // the user who receives the notification
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-    fromUser: { // the user who triggered it (liked, commented, subscribed)
+    fromUser: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-    type: { // type of notification
+    type: {
       type: String,
-      enum: ["like", "comment", "subscription"],
+      enum: ["comment", "subscription", "video_like", "comment_like"],
       required: true,
     },
-    video: { // optional, only for like/comment
+    video: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Video",
     },
-    comment: { // optional, only for comment
+    comment: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Comment",
     },

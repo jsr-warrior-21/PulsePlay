@@ -1,18 +1,13 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
-
-function VideoCard({ _id, title, thumbnail, owner, views }) {
+export default function VideoCard({ video }) {
   return (
-    <Link to={`/video/${_id}`}>
-        <div className='w-full bg-gray-800 rounded-xl p-4 h-full hover:bg-gray-700 duration-200'>
-            <div className='w-full justify-center mb-4'>
-                <img src={thumbnail} alt={title} className='rounded-xl object-cover h-40 w-full' />
-            </div>
-            <h3 className='text-xl font-bold text-white line-clamp-1'>{title}</h3>
-            <p className='text-gray-400 text-sm'>@{owner?.username}</p>
-            <p className='text-gray-400 text-xs'>{views} views</p>
-        </div>
-    </Link>
-  )
+    <div className="bg-white rounded shadow p-2 hover:shadow-md transition">
+      <img
+        src={video.thumbnail}
+        alt={video.title}
+        className="w-full h-40 object-cover rounded"
+      />
+      <h3 className="font-semibold mt-2">{video.title}</h3>
+      <p className="text-sm text-gray-500">{video.views} views</p>
+    </div>
+  );
 }
-export default VideoCard
