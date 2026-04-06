@@ -11,8 +11,17 @@ import Home from './pages/Home.jsx'
 import VideoDetail from './pages/VideoDetail.jsx'
 import MyChannel from './pages/MyChannel.jsx'
 
-// Sabhi components ko index.js se ek hi line mein mangao
-import { AuthLayout, Login, Signup, UploadVideo } from './components'
+// Naye Pages/Components jo aapne banaye hain
+import { 
+    AuthLayout, 
+    Login, 
+    Signup, 
+    UploadVideo, 
+    Tweets // Agar components folder mein hai
+} from './components'
+
+// Agar Dashboard aapne pages mein banaya hai toh yahan import karein
+// import Dashboard from './pages/Dashboard.jsx' 
 
 const router = createBrowserRouter([
   {
@@ -68,6 +77,34 @@ const router = createBrowserRouter([
             element: (
                 <AuthLayout authentication>
                     <MyChannel />
+                </AuthLayout>
+            ),
+        },
+        // --- NAYE ROUTES JO AAPNE MAANGE THE ---
+        {
+            path: "/community", // Tweets ke liye
+            element: (
+                <AuthLayout authentication>
+                    <Tweets /> 
+                </AuthLayout>
+            ),
+        },
+        {
+            path: "/dashboard", // Video Edit/Delete aur Stats ke liye
+            element: (
+                <AuthLayout authentication>
+                    {/* Yahan aapka Dashboard component aayega */}
+                    <MyChannel /> 
+                </AuthLayout>
+            ),
+        },
+        {
+            path: "/subscriptions", // Jinko aapne subscribe kiya hai
+            element: (
+                <AuthLayout authentication>
+                    <div className="text-white p-10 text-center text-2xl font-bold">
+                        Channels you subscribed will appear here (Work in progress)
+                    </div>
                 </AuthLayout>
             ),
         },

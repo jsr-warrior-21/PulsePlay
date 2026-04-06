@@ -1,18 +1,30 @@
-import multer from 'multer';
+import multer from "multer";
+import path from "path";
 
-// 1. diskStorage defines storage rules
 const storage = multer.diskStorage({
-    // 2. destination: ALWAYS saves to ./public/temp folder
-    destination: function(req, file, callback) {
-        callback(null, "./public/temp");  // null=success, path=where to save
-    },
-    // 3. filename: Keeps ORIGINAL filename (e.g. "photo.jpg" stays "photo.jpg")
-    filename: function(req, file, callback) {
-        callback(null, file.originalname); 
-    }
+  destination: function (req, file, callback) {
+    callback(null, "./public/temp");
+  },
+  filename: function (req, file, callback) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1E9);
+    callback(null, uniqueSuffix + path.extname(file.originalname));
+  },
 });
 
-// 4. upload middleware bundles the storage config
-const upload = multer({ storage: storage });
+const fileFilter = (req, file, callback) => {
+  const allowedTypes = /jpg|jpeg|png|mp4|mkv/;
+  const ext = path.extname(file.originalname).toLowerCase();
 
-export { upload }; 
+  if (allowedTypes.test(ext)) {
+    callback(null, true);
+  } else {
+    callback(new Error("Unsupported file type"), false);
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+});
+
+export { upload };

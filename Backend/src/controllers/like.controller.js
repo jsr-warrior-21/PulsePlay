@@ -8,18 +8,20 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     const userId = req.user?._id
 
+    if (!userId) {
+        throw new ApiError(401, "Unauthorized request")
+    }
+
     if (!isValidObjectId(videoId)) {
         throw new ApiError(400, "Invalid video id")
     }
 
-    // Check if video was already liked by this user
-    const likedAlready = await Like.findOne({
+    const deleted = await Like.findOneAndDelete({
         video: videoId,
         likedBy: userId
     })
 
-    if (likedAlready) {
-        await Like.findByIdAndDelete(likedAlready._id)
+    if (deleted) {
         return res
             .status(200)
             .json(new ApiResponse(200, { isLiked: false }, "Unliked successfully"))
@@ -39,17 +41,20 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
     const { commentId } = req.params
     const userId = req.user?._id
 
+    if (!userId) {
+        throw new ApiError(401, "Unauthorized request")
+    }
+
     if (!isValidObjectId(commentId)) {
         throw new ApiError(400, "Invalid comment id")
     }
 
-    const likedAlready = await Like.findOne({
+    const deleted = await Like.findOneAndDelete({
         comment: commentId,
         likedBy: userId
     })
 
-    if (likedAlready) {
-        await Like.findByIdAndDelete(likedAlready._id)
+    if (deleted) {
         return res
             .status(200)
             .json(new ApiResponse(200, { isLiked: false }, "Unliked successfully"))
@@ -63,24 +68,26 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
     return res
         .status(200)
         .json(new ApiResponse(200, { isLiked: true }, "Liked successfully"))
-
 })
 
 const toggleTweetLike = asyncHandler(async (req, res) => {
     const { tweetId } = req.params
     const userId = req.user?._id
 
+    if (!userId) {
+        throw new ApiError(401, "Unauthorized request")
+    }
+
     if (!isValidObjectId(tweetId)) {
         throw new ApiError(400, "Invalid tweet id")
     }
 
-    const likedAlready = await Like.findOne({
+    const deleted = await Like.findOneAndDelete({
         tweet: tweetId,
         likedBy: userId
     })
 
-    if (likedAlready) {
-        await Like.findByIdAndDelete(likedAlready._id)
+    if (deleted) {
         return res
             .status(200)
             .json(new ApiResponse(200, { isLiked: false }, "Unliked successfully"))
@@ -99,17 +106,20 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 const getLikedVideos = asyncHandler(async (req, res) => {
     const userId = req.user?._id
 
-    // Aggregation pipeline to get all videos liked by the user
+    if (!userId) {
+        throw new ApiError(401, "Unauthorized request")
+    }
+
     const likedVideos = await Like.aggregate([
         {
             $match: {
                 likedBy: new mongoose.Types.ObjectId(userId),
-                video: { $exists: true }
+                video: { $ne: null }
             }
         },
         {
             $lookup: {
-                from: "videos", // Ensure this matches your video collection name
+                from: "videos",
                 localField: "video",
                 foreignField: "_id",
                 as: "likedVideo",
@@ -134,6 +144,11 @@ const getLikedVideos = asyncHandler(async (req, res) => {
                     {
                         $addFields: {
                             owner: { $first: "$ownerDetails" }
+                        }
+                    },
+                    {
+                        $project: {
+                            ownerDetails: 0
                         }
                     }
                 ]

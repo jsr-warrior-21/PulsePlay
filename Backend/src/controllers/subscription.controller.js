@@ -1,11 +1,9 @@
 import mongoose, { isValidObjectId } from "mongoose"
-import { User } from "../models/users.model.js"
 import { subscriptionModel as Subscription } from "../models/subscription.model.js"
 import { ApiError } from '../utils/apiError.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiResponse } from '../utils/apiResponse.js'
 
-// 1. Toggle Subscription (Subscribe/Unsubscribe)
 const toggleSubscription = asyncHandler(async (req, res) => {
     const { channelId } = req.params
     const userId = req.user?._id
@@ -14,27 +12,31 @@ const toggleSubscription = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid Channel ID")
     }
 
-    // Check if subscription already exists
-    const credentials = { subscriber: userId, channel: channelId };
-    const subscribedAlready = await Subscription.findOne(credentials);
+    if (channelId === userId?.toString()) {
+        throw new ApiError(400, "Cannot subscribe to your own channel")
+    }
+
+    const credentials = {
+        subscriber: userId,
+        channel: new mongoose.Types.ObjectId(channelId)
+    }
+
+    const subscribedAlready = await Subscription.findOne(credentials)
 
     if (subscribedAlready) {
-        // Unsubscribe
-        await Subscription.deleteOne(credentials);
+        await Subscription.deleteOne(credentials)
         return res
             .status(200)
             .json(new ApiResponse(200, { isSubscribed: false }, "Unsubscribed successfully"))
     }
 
-    // Subscribe
-    await Subscription.create(credentials);
+    await Subscription.create(credentials)
 
     return res
         .status(200)
         .json(new ApiResponse(200, { isSubscribed: true }, "Subscribed successfully"))
 })
 
-// 2. Controller to return subscriber list of a channel (Who subscribed to this channel?)
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     const { channelId } = req.params
 
@@ -78,7 +80,6 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, subscribers, "Subscribers list fetched successfully"))
 })
 
-// 3. Controller to return channel list to which user has subscribed (Whom did this user subscribe to?)
 const getSubscribedChannels = asyncHandler(async (req, res) => {
     const { subscriberId } = req.params
 
