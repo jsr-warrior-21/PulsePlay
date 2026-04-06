@@ -1,175 +1,135 @@
-import mongoose, { isValidObjectId } from "mongoose"
-import { likeModel as Like } from "../models/like.model.js"
-import { ApiError } from '../utils/apiError.js'
-import { asyncHandler } from '../utils/asyncHandler.js'
-import { ApiResponse } from '../utils/apiResponse.js'
+import mongoose from "mongoose";
+import { likeModel as Like } from "../models/like.model.js";
+import { Notification } from "../models/notification.model.js";
+import { Video } from "../models/video.model.js";
+import { commentModel as Comment } from "../models/comment.model.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/apiError.js";
+import { ApiResponse } from "../utils/apiResponse.js";
 
+// Helper to create notification
+const createLikeNotification = async ({ userId, targetUserId, type, videoId, commentId }) => {
+  if (userId.toString() === targetUserId.toString()) return; // Don't notify self
+  await Notification.create({
+    user: targetUserId,
+    fromUser: userId,
+    type, // 'video_like' or 'comment_like'
+    video: videoId || null,
+    comment: commentId || null,
+    isRead: false,
+  });
+};
+
+// Toggle video like
 const toggleVideoLike = asyncHandler(async (req, res) => {
-    const { videoId } = req.params
-    const userId = req.user?._id
+  const { videoId } = req.params;
+  const userId = req.user._id;
 
-    if (!userId) {
-        throw new ApiError(401, "Unauthorized request")
-    }
+  if (!mongoose.isValidObjectId(videoId)) throw new ApiError(400, "Invalid video ID");
 
-    if (!isValidObjectId(videoId)) {
-        throw new ApiError(400, "Invalid video id")
-    }
+  const existing = await Like.findOne({ video: videoId, likedBy: userId });
 
-    const deleted = await Like.findOneAndDelete({
-        video: videoId,
-        likedBy: userId
-    })
+  if (existing) {
+    await existing.deleteOne();
+    return res.status(200).json(new ApiResponse(200, { isLiked: false }, "Video unliked successfully"));
+  }
 
-    if (deleted) {
-        return res
-            .status(200)
-            .json(new ApiResponse(200, { isLiked: false }, "Unliked successfully"))
-    }
+  const like = await Like.create({ video: videoId, likedBy: userId });
 
-    await Like.create({
-        video: videoId,
-        likedBy: userId
-    })
+  const video = await Video.findById(videoId);
+  if (video) {
+    await createLikeNotification({
+      userId,
+      targetUserId: video.owner,
+      type: "video_like",
+      videoId,
+    });
+  }
 
-    return res
-        .status(200)
-        .json(new ApiResponse(200, { isLiked: true }, "Liked successfully"))
-})
+  return res.status(200).json(new ApiResponse(200, { isLiked: true }, "Video liked successfully"));
+});
 
+// Toggle comment like
 const toggleCommentLike = asyncHandler(async (req, res) => {
-    const { commentId } = req.params
-    const userId = req.user?._id
+  const { commentId } = req.params;
+  const userId = req.user._id;
 
-    if (!userId) {
-        throw new ApiError(401, "Unauthorized request")
-    }
+  if (!mongoose.isValidObjectId(commentId)) throw new ApiError(400, "Invalid comment ID");
 
-    if (!isValidObjectId(commentId)) {
-        throw new ApiError(400, "Invalid comment id")
-    }
+  const existing = await Like.findOne({ comment: commentId, likedBy: userId });
 
-    const deleted = await Like.findOneAndDelete({
-        comment: commentId,
-        likedBy: userId
-    })
+  if (existing) {
+    await existing.deleteOne();
+    return res.status(200).json(new ApiResponse(200, { isLiked: false }, "Comment unliked successfully"));
+  }
 
-    if (deleted) {
-        return res
-            .status(200)
-            .json(new ApiResponse(200, { isLiked: false }, "Unliked successfully"))
-    }
+  const like = await Like.create({ comment: commentId, likedBy: userId });
 
-    await Like.create({
-        comment: commentId,
-        likedBy: userId
-    })
+  const comment = await Comment.findById(commentId);
+  if (comment) {
+    await createLikeNotification({
+      userId,
+      targetUserId: comment.owner,
+      type: "comment_like",
+      commentId,
+      videoId: comment.video,
+    });
+  }
 
-    return res
-        .status(200)
-        .json(new ApiResponse(200, { isLiked: true }, "Liked successfully"))
-})
+  return res.status(200).json(new ApiResponse(200, { isLiked: true }, "Comment liked successfully"));
+});
 
+// Toggle tweet like
 const toggleTweetLike = asyncHandler(async (req, res) => {
-    const { tweetId } = req.params
-    const userId = req.user?._id
+  const { tweetId } = req.params;
+  const userId = req.user._id;
 
-    if (!userId) {
-        throw new ApiError(401, "Unauthorized request")
-    }
+  if (!mongoose.isValidObjectId(tweetId)) throw new ApiError(400, "Invalid tweet ID");
 
-    if (!isValidObjectId(tweetId)) {
-        throw new ApiError(400, "Invalid tweet id")
-    }
+  const existing = await Like.findOne({ tweet: tweetId, likedBy: userId });
 
-    const deleted = await Like.findOneAndDelete({
-        tweet: tweetId,
-        likedBy: userId
-    })
+  if (existing) {
+    await existing.deleteOne();
+    return res.status(200).json(new ApiResponse(200, { isLiked: false }, "Tweet unliked successfully"));
+  }
 
-    if (deleted) {
-        return res
-            .status(200)
-            .json(new ApiResponse(200, { isLiked: false }, "Unliked successfully"))
-    }
+  await Like.create({ tweet: tweetId, likedBy: userId });
 
-    await Like.create({
-        tweet: tweetId,
-        likedBy: userId
-    })
+  return res.status(200).json(new ApiResponse(200, { isLiked: true }, "Tweet liked successfully"));
+});
 
-    return res
-        .status(200)
-        .json(new ApiResponse(200, { isLiked: true }, "Liked successfully"))
-})
-
+// Get all liked videos of the user
 const getLikedVideos = asyncHandler(async (req, res) => {
-    const userId = req.user?._id
+  const userId = req.user._id;
 
-    if (!userId) {
-        throw new ApiError(401, "Unauthorized request")
-    }
-
-    const likedVideos = await Like.aggregate([
-        {
-            $match: {
-                likedBy: new mongoose.Types.ObjectId(userId),
-                video: { $ne: null }
-            }
-        },
-        {
+  const likedVideos = await Like.aggregate([
+    { $match: { likedBy: new mongoose.Types.ObjectId(userId), video: { $ne: null } } },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "video",
+        foreignField: "_id",
+        as: "videoDetails",
+        pipeline: [
+          {
             $lookup: {
-                from: "videos",
-                localField: "video",
-                foreignField: "_id",
-                as: "likedVideo",
-                pipeline: [
-                    {
-                        $lookup: {
-                            from: "users",
-                            localField: "owner",
-                            foreignField: "_id",
-                            as: "ownerDetails",
-                            pipeline: [
-                                {
-                                    $project: {
-                                        username: 1,
-                                        fullName: 1,
-                                        avatar: 1
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    {
-                        $addFields: {
-                            owner: { $first: "$ownerDetails" }
-                        }
-                    },
-                    {
-                        $project: {
-                            ownerDetails: 0
-                        }
-                    }
-                ]
-            }
-        },
-        {
-            $unwind: "$likedVideo"
-        },
-        {
-            $replaceRoot: { newRoot: "$likedVideo" }
-        }
-    ])
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "ownerDetails",
+              pipeline: [{ $project: { username: 1, fullName: 1, avatar: 1 } }],
+            },
+          },
+          { $addFields: { owner: { $first: "$ownerDetails" } } },
+          { $project: { ownerDetails: 0 } },
+        ],
+      },
+    },
+    { $unwind: "$videoDetails" },
+    { $replaceRoot: { newRoot: "$videoDetails" } },
+  ]);
 
-    return res
-        .status(200)
-        .json(new ApiResponse(200, likedVideos, "Liked videos fetched successfully"))
-})
+  return res.status(200).json(new ApiResponse(200, likedVideos, "Liked videos fetched successfully"));
+});
 
-export {
-    toggleCommentLike,
-    toggleTweetLike,
-    toggleVideoLike,
-    getLikedVideos
-}
+export { toggleVideoLike, toggleCommentLike, toggleTweetLike, getLikedVideos };
