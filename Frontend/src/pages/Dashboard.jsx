@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import axiosInstance, { getSecureUrl } from '../api/axios';
 import { useSelector } from 'react-redux';
 import VideoCard from '../components/VideoCard';
@@ -14,19 +14,20 @@ function Dashboard() {
         email: userData?.email || ""
     });
 
-    const fetchDashboardData = () => {
+    const fetchDashboardData = useCallback(() => {
         axiosInstance.get("/dashboard").then(res => {
+            console.log("Dashboard Raw Data:", res.data.data); // Debugging ke liye
             setData(res.data.data);
             setFormData({
                 fullName: res.data.data.stats?.fullName || userData?.fullName,
                 email: res.data.data.stats?.email || userData?.email
             });
-        });
-    };
+        }).catch(err => console.error("Fetch Error:", err));
+    }, [userData]);
 
     useEffect(() => {
         fetchDashboardData();
-    }, [userData]);
+    }, [fetchDashboardData]);
 
     const handleDeleteVideo = async (videoId) => {
         if (window.confirm("Are you sure you want to delete this video?")) {
@@ -62,11 +63,11 @@ function Dashboard() {
     const handleAvatarUpdate = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        const formData = new FormData();
-        formData.append("avatar", file);
+        const form = new FormData();
+        form.append("avatar", file);
         setUpdating(true);
         try {
-            await axiosInstance.patch("/users/avatar", formData);
+            await axiosInstance.patch("/users/avatar", form);
             window.location.reload(); 
         } catch (err) {
             alert("Failed to update avatar");
@@ -76,11 +77,11 @@ function Dashboard() {
     const handleCoverUpdate = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        const formData = new FormData();
-        formData.append("coverImage", file);
+        const form = new FormData();
+        form.append("coverImage", file);
         setUpdating(true);
         try {
-            await axiosInstance.patch("/users/cover-image", formData);
+            await axiosInstance.patch("/users/cover-image", form);
             window.location.reload();
         } catch (err) {
             alert("Failed to update cover image");
@@ -103,16 +104,28 @@ function Dashboard() {
 
     if (!data) return (
         <div className="flex-1 flex items-center justify-center h-screen bg-[#0f0f0f]">
-            <div className="text-xl font-black text-zinc-700 animate-pulse uppercase tracking-widest">Loading Dashboard...</div>
+            <div className="text-xl font-black text-zinc-700 animate-pulse uppercase tracking-widest italic">Syncing Dashboard...</div>
         </div>
     );
 
-    const { stats, videos, subscribedChannels } = data;
+    const stats = data.stats || {};
+    
+    // ✅ CRITICAL FIX: Owner Object Sync
+    // Dashboard mein 'owner' aksar string ID aati hai, VideoCard ko object chahiye.
+    // Hum owner ID ko userData object se replace kar rahe hain taaki avatar/name dikhe.
+    const rawVideos = Array.isArray(data.videos) ? data.videos : (data.videos?.docs || []);
+    const videosList = rawVideos.map(v => ({
+        ...v,
+        owner: typeof v.owner === 'string' ? userData : (v.owner || userData)
+    }));
+
+    const subscribedChannelsCount = data.subscribedChannels?.length || stats.channelsSubscribedTo || 0;
 
     return (
-        <div className="flex-1 bg-[#0f0f0f] text-white overflow-y-auto">
+        <div className="flex-1 bg-[#0f0f0f] text-white overflow-y-auto no-scrollbar">
             <div className="max-w-7xl mx-auto p-4 md:p-8 text-left">
                 
+                {/* 🖼️ Cover Image */}
                 <div className="relative group h-40 md:h-52 w-full bg-zinc-900 rounded-3xl overflow-hidden mb-12 shadow-2xl border border-zinc-800">
                     <img 
                         src={getSecureUrl(userData?.coverImage)} 
@@ -121,10 +134,11 @@ function Dashboard() {
                     />
                     <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 cursor-pointer transition-all duration-300">
                         <input type="file" className="hidden" onChange={handleCoverUpdate} accept="image/*" />
-                        <span className="bg-white text-black px-6 py-2 rounded-full font-black text-sm shadow-xl transform scale-90 group-hover:scale-100 transition-transform">EDIT COVER</span>
+                        <span className="bg-white text-black px-6 py-2 rounded-full font-black text-sm shadow-xl transform scale-90 group-hover:scale-100 transition-transform tracking-tighter">EDIT COVER</span>
                     </label>
                 </div>
 
+                {/* 👤 Profile Section */}
                 <div className="flex flex-col md:flex-row items-center md:items-end gap-6 px-4 -mt-20 mb-12 relative z-10">
                     <div className="relative group">
                         <img 
@@ -141,7 +155,7 @@ function Dashboard() {
                     <div className="mb-2 text-center md:text-left flex-1">
                         {!isEditing ? (
                             <>
-                                <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase leading-tight">
+                                <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase leading-tight italic">
                                     {userData?.fullName}
                                 </h1>
                                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-3 gap-y-1 mt-2">
@@ -152,17 +166,15 @@ function Dashboard() {
                                     </p>
                                     <span className="hidden md:block text-zinc-800 text-xl">•</span>
                                     <p className="text-zinc-400 font-medium text-sm">
-                                        <span className="text-white font-bold">
-                                            {subscribedChannels?.length || stats.channelsSubscribedTo || 0}
-                                        </span> Subscribed
+                                        <span className="text-white font-bold">{subscribedChannelsCount}</span> Subscribed
                                     </p>
                                     <button 
                                         onClick={() => setIsEditing(true)}
                                         className="ml-2 md:ml-4 bg-zinc-800/50 hover:bg-zinc-800 text-[10px] font-black text-blue-500 px-5 py-2 rounded-full uppercase tracking-widest transition-colors border border-zinc-700 shadow-lg"
                                     >
-                                        Edit Info
+                                        Edit Profile
                                     </button>
-                                </div>
+                                </div> 
                             </>
                         ) : (
                             <form onSubmit={handleAccountUpdate} className="flex flex-col gap-3 mt-4 max-w-sm">
@@ -189,10 +201,11 @@ function Dashboard() {
                     </div>
                 </div>
 
+                {/* 📊 Stats Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-14">
                     {[
                         { label: "Total Views", val: stats.totalViews, icon: "👁️" },
-                        { label: "Videos", val: stats.totalVideos, icon: "📹" },
+                        { label: "Videos", val: stats.totalVideos || videosList.length, icon: "📹" },
                         { label: "Likes", val: stats.totalLikes, icon: "❤️" },
                         { label: "Subscribers", val: stats.totalSubscribers, icon: "👥" }
                     ].map((s, i) => (
@@ -200,26 +213,35 @@ function Dashboard() {
                             <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-2">
                                 <span className="text-lg grayscale group-hover:grayscale-0 transition-all">{s.icon}</span> {s.label}
                             </p>
-                            <h2 className="text-3xl font-black text-white tracking-tighter">{s.val}</h2>
+                            <h2 className="text-3xl font-black text-white tracking-tighter">{s.val || 0}</h2>
                         </div>
                     ))}
                 </div>
 
                 <div className="flex items-center justify-between mb-8 border-b border-zinc-800 pb-4">
-                    <h2 className="text-2xl font-black uppercase tracking-tighter italic">Manage Your Videos</h2>
-                    <span className="text-xs font-bold text-zinc-500 bg-zinc-900 px-3 py-1 rounded-full border border-zinc-800">{videos.length} Videos Total</span>
+                    <h2 className="text-2xl font-black uppercase tracking-tighter italic">Manage Your Creations</h2>
+                    <span className="text-xs font-bold text-zinc-500 bg-zinc-900 px-3 py-1 rounded-full border border-zinc-800">{videosList.length} Uploads</span>
                 </div>
 
+                {/* 🎬 Video Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 pb-20">
-                    {videos.map(v => (
-                        <div key={v._id} className="relative group bg-zinc-900/30 p-2 rounded-3xl border border-transparent hover:border-zinc-800 transition-all hover:shadow-2xl">
-                            <VideoCard {...v} />
-                            <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
-                                <button className="bg-red-600/90 hover:bg-red-600 p-2.5 rounded-xl text-white shadow-lg backdrop-blur-sm" onClick={() => handleDeleteVideo(v._id)}>🗑️</button>
-                                <button className="bg-zinc-100 hover:bg-white p-2.5 rounded-xl text-black shadow-lg backdrop-blur-sm" onClick={() => handleUpdateVideo(v._id, v.title)}>✏️</button>
+                    {videosList.length > 0 ? (
+                        videosList.map(v => (
+                            <div key={v._id} className="relative group bg-zinc-900/30 p-2 rounded-3xl border border-transparent hover:border-zinc-800 transition-all hover:shadow-2xl">
+                                <VideoCard {...v} />
+                                <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
+                                    <button className="bg-red-600/90 hover:bg-red-600 p-2.5 rounded-xl text-white shadow-lg backdrop-blur-sm shadow-black/50" onClick={() => handleDeleteVideo(v._id)}>🗑️</button>
+                                    <button className="bg-white hover:bg-zinc-200 p-2.5 rounded-xl text-black shadow-lg backdrop-blur-sm shadow-black/50" onClick={() => handleUpdateVideo(v._id, v.title)}>✏️</button>
+                                </div>
                             </div>
+                        ))
+                    ) : (
+                        <div className="col-span-full text-center py-20 bg-zinc-900/10 rounded-[3rem] border border-dashed border-zinc-800">
+                            <p className="text-zinc-600 font-bold uppercase italic tracking-widest">
+                                No videos found in your dashboard. Start creating! 🚀
+                            </p>
                         </div>
-                    ))}
+                    )}
                 </div>
             </div>
             
@@ -227,7 +249,7 @@ function Dashboard() {
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[100]">
                     <div className="text-center">
                         <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                        <p className="font-black text-sm tracking-widest uppercase text-white">Updating...</p>
+                        <p className="font-black text-sm tracking-widest uppercase text-white animate-pulse">Syncing Pulse...</p>
                     </div>
                 </div>
             )}

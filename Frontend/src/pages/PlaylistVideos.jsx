@@ -31,11 +31,9 @@ function PlaylistVideos() {
         if (playlistId) fetchPlaylistData();
     }, [playlistId]);
 
-    // 1. Delete Playlist Fix
     const handleDeletePlaylist = async () => {
         if (window.confirm("Are you sure you want to delete this entire playlist?")) {
             try {
-                // Ensure route matches your backend: /playlists/:playlistId
                 await axiosInstance.delete(`/playlists/${playlistId}`);
                 alert("Playlist deleted successfully");
                 navigate("/playlists");
@@ -45,7 +43,6 @@ function PlaylistVideos() {
         }
     };
 
-    // 2. Edit Playlist Name/Desc Fix
     const handleUpdatePlaylist = async (e) => {
         e.preventDefault();
         try {
@@ -61,11 +58,9 @@ function PlaylistVideos() {
         }
     };
 
-    // 3. Remove Video Fix
     const handleRemoveVideo = async (videoId) => {
         if (window.confirm("Remove this video?")) {
             try {
-                // Route check: /playlists/remove/:videoId/:playlistId
                 await axiosInstance.patch(`/playlists/remove/${videoId}/${playlistId}`);
                 fetchPlaylistData();
             } catch (err) {
@@ -74,7 +69,7 @@ function PlaylistVideos() {
         }
     };
 
-    if (loading) return <div className="p-20 text-center text-white italic">Loading...</div>;
+    if (loading) return <div className="p-20 text-center text-white font-black italic uppercase animate-pulse">Loading Playlist...</div>;
 
     return (
         <div className="flex-1 bg-[#0f0f0f] min-h-screen text-white p-4 md:p-8 text-left">
@@ -84,54 +79,59 @@ function PlaylistVideos() {
                 <div className="mb-10 border-b border-zinc-800 pb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                     {!isEditing ? (
                         <div className="flex-1">
-                            <h1 className="text-4xl font-black uppercase tracking-tighter italic flex items-center gap-4">
+                            <h1 className="text-5xl font-black uppercase tracking-tighter italic flex items-center gap-4">
                                 {playlist?.name}
-                                <button onClick={() => setIsEditing(true)} className="text-sm text-blue-500 font-bold uppercase tracking-widest border-b border-blue-500">Edit</button>
+                                <button onClick={() => setIsEditing(true)} className="text-[10px] text-blue-500 font-black uppercase tracking-widest border border-blue-500/30 px-3 py-1 rounded-full hover:bg-blue-500 hover:text-white transition-all">Edit</button>
                             </h1>
-                            <p className="text-zinc-500 mt-2 font-medium">{playlist?.description}</p>
-                            <p className="text-blue-600 text-xs font-black mt-3 uppercase tracking-widest">
-                                {/* Count Fix: Filter out any null values before counting */}
-                                {playlist?.videos?.filter(v => v !== null).length || 0} Videos
-                            </p>
+                            <p className="text-zinc-500 mt-2 font-medium max-w-2xl">{playlist?.description || "No description provided."}</p>
+                            <div className="flex items-center gap-4 mt-4">
+                                <p className="bg-blue-600 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg shadow-blue-900/20">
+                                    {playlist?.videos?.filter(v => v !== null).length || 0} Videos
+                                </p>
+                            </div>
                         </div>
                     ) : (
-                        <form onSubmit={handleUpdatePlaylist} className="flex-1 flex flex-col gap-3 max-w-md">
+                        <form onSubmit={handleUpdatePlaylist} className="flex-1 flex flex-col gap-3 max-w-md bg-[#1a1a1a] p-6 rounded-3xl border border-gray-800">
                             <input 
                                 type="text" 
                                 value={newName} 
                                 onChange={(e) => setNewName(e.target.value)}
-                                className="bg-zinc-900 border border-zinc-700 p-2 rounded-lg outline-none focus:border-blue-500"
+                                className="bg-zinc-900 border border-zinc-700 p-3 rounded-xl outline-none focus:border-blue-500 font-bold"
                                 placeholder="Playlist Name"
                             />
                             <textarea 
                                 value={newDesc} 
                                 onChange={(e) => setNewDesc(e.target.value)}
-                                className="bg-zinc-900 border border-zinc-700 p-2 rounded-lg outline-none focus:border-blue-500"
+                                className="bg-zinc-900 border border-zinc-700 p-3 rounded-xl outline-none focus:border-blue-500 h-24 resize-none"
                                 placeholder="Description"
                             />
                             <div className="flex gap-2">
-                                <button type="submit" className="bg-blue-600 px-4 py-1 rounded-full text-xs font-bold">SAVE</button>
-                                <button type="button" onClick={() => setIsEditing(false)} className="bg-zinc-800 px-4 py-1 rounded-full text-xs font-bold">CANCEL</button>
+                                <button type="submit" className="bg-blue-600 px-6 py-2 rounded-full text-[10px] font-black uppercase">SAVE CHANGES</button>
+                                <button type="button" onClick={() => setIsEditing(false)} className="bg-zinc-800 px-6 py-2 rounded-full text-[10px] font-black uppercase">CANCEL</button>
                             </div>
                         </form>
                     )}
 
                     <button 
                         onClick={handleDeletePlaylist}
-                        className="bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white px-6 py-2 rounded-full text-xs font-black uppercase border border-red-600 transition-all"
+                        className="bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white px-8 py-3 rounded-full text-[10px] font-black uppercase border border-red-600/50 transition-all shadow-lg active:scale-95"
                     >
                         Delete Playlist
                     </button>
                 </div>
 
                 {/* Videos Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                     {playlist?.videos?.filter(v => v !== null).map(v => (
                         <div key={v._id} className="relative group">
-                            <VideoCard {...v} />
+                            {/* 🔥 FIXED PROP PASSING HERE */}
+                            <VideoCard video={v} />
+                            
+                            {/* Remove Video Button Overlay */}
                             <button 
                                 onClick={() => handleRemoveVideo(v._id)}
-                                className="absolute top-2 right-2 bg-black/80 hover:bg-red-600 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all shadow-xl"
+                                className="absolute top-2 right-2 bg-black/90 hover:bg-red-600 text-white w-8 h-8 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-2xl border border-white/10 z-10"
+                                title="Remove from playlist"
                             >
                                 ✕
                             </button>
@@ -139,9 +139,10 @@ function PlaylistVideos() {
                     ))}
                 </div>
 
-                {(!playlist?.videos || playlist.videos.length === 0) && (
-                    <div className="py-20 text-center border-2 border-dashed border-zinc-800 rounded-3xl">
-                        <p className="text-zinc-600 font-black uppercase tracking-widest">Playlist is empty</p>
+                {(!playlist?.videos || playlist.videos.filter(v => v !== null).length === 0) && (
+                    <div className="py-32 text-center border-2 border-dashed border-zinc-800 rounded-[3rem] bg-[#141414]/50">
+                        <span className="text-5xl mb-4 block opacity-20">📁</span>
+                        <p className="text-zinc-600 font-black uppercase tracking-[0.3em] text-sm italic">This playlist is empty</p>
                     </div>
                 )}
             </div>

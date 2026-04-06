@@ -10,12 +10,14 @@ const getAllVideos = asyncHandler(async (req, res) => {
     
     const pipeline = []
 
-    if (userId) {
-        if (!isValidObjectId(userId)) throw new ApiError(400, "Invalid User ID")
-        pipeline.push({
-            $match: { owner: new mongoose.Types.ObjectId(userId) }
-        })
-    }
+if (userId) {
+    if (!isValidObjectId(userId)) throw new ApiError(400, "Invalid User ID")
+    pipeline.push({
+        $match: { 
+            owner: new mongoose.Types.ObjectId(userId) 
+        }
+    })
+}
 
     if (query) {
         pipeline.push({
@@ -104,23 +106,75 @@ const publishAVideo = asyncHandler(async (req, res) => {
         .json(new ApiResponse(201, video, "Video published successfully"))
 })
 
+
+
 const getVideoById = asyncHandler(async (req, res) => {
-    const { videoId } = req.params
+    const { videoId } = req.params;
+    if (!isValidObjectId(videoId)) throw new ApiError(400, "Invalid Video ID");
 
-    if (!isValidObjectId(videoId)) throw new ApiError(400, "Invalid Video ID")
+    const userId = req.user?._id ? new mongoose.Types.ObjectId(req.user._id) : null;
 
-    const video = await Video.findById(videoId)
-        .populate("owner", "username fullName avatar")
+    const video = await Video.aggregate([
+        { $match: { _id: new mongoose.Types.ObjectId(videoId) } },
+        {
+            $lookup: {
+                from: "likemodels",
+                localField: "_id",
+                foreignField: "video",
+                as: "likes"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "subscriptionmodels",
+                            localField: "_id",
+                            foreignField: "channel",
+                            as: "subscribers"
+                        }
+                    },
+                    {
+                        $addFields: {
+                            subscribersCount: { $size: "$subscribers" },
+                            isSubscribed: {
+                                $cond: {
+                                    if: { $in: [userId, "$subscribers.subscriber"] },
+                                    then: true,
+                                    else: false
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $addFields: {
+                likesCount: { $size: "$likes" },
+                owner: { $first: "$owner" },
+                isLiked: {
+                    $cond: {
+                        if: { $in: [userId, "$likes.likedBy"] },
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        }
+    ]);
 
-    if (!video) throw new ApiError(404, "Video not found")
+    if (!video?.length) throw new ApiError(404, "Video not found");
+    await Video.findByIdAndUpdate(videoId, { $inc: { views: 1 } });
 
-    video.views += 1
-    await video.save({ validateBeforeSave: false })
+    return res.status(200).json(new ApiResponse(200, video[0], "Success"));
+});
 
-    return res
-        .status(200)
-        .json(new ApiResponse(200, video, "Video details fetched successfully"))
-})
 
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params

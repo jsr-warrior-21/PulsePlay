@@ -10,15 +10,16 @@ import { ApiError } from "../utils/apiError.js";
 
 const getDashboardData = asyncHandler(async (req, res) => {
   const userId = req.user?._id;
-
   if (!userId) throw new ApiError(401, "Unauthorized request");
 
-  // 1️ Channel Stats
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+
+  // 1️⃣ Channel Stats (Views, Videos, Likes)
   const statsAgg = await Video.aggregate([
-    { $match: { owner: new mongoose.Types.ObjectId(userId) } },
+    { $match: { owner: userObjectId } },
     {
       $lookup: {
-        from: "likemodels",
+        from: "likemodels", // ✨ DB Collection name
         localField: "_id",
         foreignField: "video",
         as: "likes",
@@ -34,13 +35,14 @@ const getDashboardData = asyncHandler(async (req, res) => {
     },
   ]);
 
+  // Counts for Subscribers
   const totalSubscribers = await Subscription.countDocuments({
-    channel: userId,
+    channel: userObjectId,
   });
 
   const channelsSubscribedTo = await Subscription.countDocuments({
-  subscriber: userId,
-});
+    subscriber: userObjectId,
+  });
 
   const statsData = statsAgg[0] || {};
   const stats = {
@@ -51,62 +53,27 @@ const getDashboardData = asyncHandler(async (req, res) => {
     channelsSubscribedTo
   };
 
-  // 2️ User Videos
-  const videos = await Video.find({ owner: userId }).sort({ createdAt: -1 });
-
-  // 3️ Notifications
-  const notifications = await Notification.find({ user: userId })
-    .populate("fromUser", "username fullName avatar")
-    .populate("video", "title thumbnail")
-    .populate("comment", "content")
-    .sort({ createdAt: -1 });
-
-  const unreadNotifications = await Notification.countDocuments({
-    user: userId,
-    isRead: false,
-  });
-
-  // 4️ Liked Videos
-  const likedVideos = await Like.aggregate([
-    {
-      $match: {
-        likedBy: new mongoose.Types.ObjectId(userId),
-        video: { $ne: null },
-      },
-    },
+  // 2️⃣ User Videos (Using aggregate to ensure owner data is joined)
+  const videos = await Video.aggregate([
+    { $match: { owner: userObjectId } },
     {
       $lookup: {
-        from: "videos",
-        localField: "video",
+        from: "users",
+        localField: "owner",
         foreignField: "_id",
-        as: "likedVideo",
+        as: "owner",
         pipeline: [
-          {
-            $lookup: {
-              from: "users",
-              localField: "owner",
-              foreignField: "_id",
-              as: "ownerDetails",
-              pipeline: [{ $project: { username: 1, fullName: 1, avatar: 1 } }],
-            },
-          },
-          { $addFields: { owner: { $first: "$ownerDetails" } } },
-          { $project: { ownerDetails: 0 } },
-        ],
-      },
+          { $project: { username: 1, fullName: 1, avatar: 1 } }
+        ]
+      }
     },
-    { $unwind: "$likedVideo" },
-    { $replaceRoot: { newRoot: "$likedVideo" } },
+    { $addFields: { owner: { $first: "$owner" } } },
+    { $sort: { createdAt: -1 } }
   ]);
 
-  // 5️ Comments by User
-  const userComments = await Comment.find({ owner: userId }).sort({
-    createdAt: -1,
-  });
-
-  // 6️ Subscriptions by User
+  // 3️⃣ Subscribed Channels List (Fixed lookup to 'users')
   const subscribedChannels = await Subscription.aggregate([
-    { $match: { subscriber: new mongoose.Types.ObjectId(userId) } },
+    { $match: { subscriber: userObjectId } },
     {
       $lookup: {
         from: "users",
@@ -125,12 +92,8 @@ const getDashboardData = asyncHandler(async (req, res) => {
       200,
       {
         stats,
-        videos,
-        likedVideos,
-        userComments,
+        videos, // ✨ Direct Array
         subscribedChannels,
-        notifications,
-        unreadNotifications,
       },
       "Dashboard data fetched successfully"
     )
