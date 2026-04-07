@@ -10,14 +10,15 @@ const getAllVideos = asyncHandler(async (req, res) => {
     
     const pipeline = []
 
-if (userId) {
-    if (!isValidObjectId(userId)) throw new ApiError(400, "Invalid User ID")
-    pipeline.push({
-        $match: { 
-            owner: new mongoose.Types.ObjectId(userId) 
-        }
-    })
-}
+    // 1. Filter by userId (Specific channel videos)
+    if (userId) {
+        if (!isValidObjectId(userId)) throw new ApiError(400, "Invalid User ID")
+        pipeline.push({
+            $match: { 
+                owner: new mongoose.Types.ObjectId(userId) 
+            }
+        })
+    }
 
     if (query) {
         pipeline.push({
@@ -30,10 +31,17 @@ if (userId) {
         })
     }
 
+    // 3. Only show published videos
+    pipeline.push({
+        $match: { isPublished: true }
+    })
+
+    // 4. Sorting logic
     const sortField = sortBy || "createdAt"
     const sortOrder = sortType === "asc" ? 1 : -1
     pipeline.push({ $sort: { [sortField]: sortOrder } })
 
+    // 5. Lookup Owner Details
     pipeline.push(
         {
             $lookup: {
@@ -106,8 +114,6 @@ const publishAVideo = asyncHandler(async (req, res) => {
         .json(new ApiResponse(201, video, "Video published successfully"))
 })
 
-
-
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
     if (!isValidObjectId(videoId)) throw new ApiError(400, "Invalid Video ID");
@@ -170,11 +176,12 @@ const getVideoById = asyncHandler(async (req, res) => {
     ]);
 
     if (!video?.length) throw new ApiError(404, "Video not found");
+    
+    // Views increment
     await Video.findByIdAndUpdate(videoId, { $inc: { views: 1 } });
 
     return res.status(200).json(new ApiResponse(200, video[0], "Success"));
 });
-
 
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params

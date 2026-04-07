@@ -10,23 +10,46 @@ import { ApiResponse } from "../utils/apiResponse.js";
 const getVideoComments = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   const { page = 1, limit = 10 } = req.query;
+  const userId = req.user?._id; 
 
   if (!isValidObjectId(videoId)) throw new ApiError(400, "Invalid Video ID");
 
   const aggregate = Comment.aggregate([
-    { $match: { video: new mongoose.Types.ObjectId(videoId) } },
+    { 
+      $match: { video: new mongoose.Types.ObjectId(videoId) } 
+    },
     {
       $lookup: {
         from: "users",
         localField: "owner",
         foreignField: "_id",
-        as: "ownerDetails",
+        as: "owner",
         pipeline: [{ $project: { username: 1, fullName: 1, avatar: 1 } }],
       },
     },
-    { $addFields: { owner: { $first: "$ownerDetails" } } },
+    { $addFields: { owner: { $first: "$owner" } } },
+    {
+      $lookup: {
+        from: "likemodels",
+        localField: "_id",
+        foreignField: "comment",
+        as: "likes",
+      },
+    },
+    {
+      $addFields: {
+        likesCount: { $size: "$likes" },
+        isLiked: {
+            $cond: {
+                if: { $in: [new mongoose.Types.ObjectId(userId), "$likes.likedBy"] },
+                then: true,
+                else: false
+            }
+        }
+      }
+    },
     { $sort: { createdAt: -1 } },
-    { $project: { ownerDetails: 0 } },
+    { $project: { likes: 0 } }, 
   ]);
 
   const options = { page: parseInt(page), limit: parseInt(limit) };

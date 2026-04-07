@@ -1,22 +1,26 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getSecureUrl } from '../api/axios';
 
 function VideoCard(props) {
-    // Handling direct props {...v} or wrapped props video={v}
     const data = props.video || props;
+    const navigate = useNavigate();
 
-    // Safety Check
     if (!data._id && !props._id) return null;
 
     const { _id, thumbnail, title, views, owner, createdAt } = data;
 
+    // Username click handle karne ke liye function
+    const goToChannel = (e) => {
+        e.preventDefault(); // Link to video ko rokne ke liye
+        e.stopPropagation();
+        navigate(`/channel/${owner?.username}`);
+    };
+
     return (
-        <Link 
-            to={`/video/${_id}`} 
-            className="group flex flex-col gap-2.5 transition-all duration-300 w-full rounded-3xl p-2 hover:bg-[#1a1a1a]"
-        >
-            <div className="relative aspect-video rounded-2xl overflow-hidden bg-black border border-gray-800/60 shadow-inner group-hover:border-gray-700 transition-all flex items-center justify-center">
+        <div className="group flex flex-col gap-2.5 transition-all duration-300 w-full rounded-3xl p-2 hover:bg-[#1a1a1a]">
+            {/* Video Thumbnail Link */}
+            <Link to={`/video/${_id}`} className="relative aspect-video rounded-2xl overflow-hidden bg-black border border-gray-800/60 shadow-inner group-hover:border-gray-700 transition-all flex items-center justify-center">
                 {thumbnail ? (
                     <img 
                         src={getSecureUrl(thumbnail)} 
@@ -26,11 +30,11 @@ function VideoCard(props) {
                 ) : (
                     <div className="w-full h-full bg-zinc-800 animate-pulse" />
                 )}
-                
-            </div>
+            </Link>
 
             <div className="flex gap-3 px-1.5 mt-1">
-                <div className="w-9 h-9 shrink-0 mt-0.5">
+                {/* Channel Avatar - Click to Profile */}
+                <div onClick={goToChannel} className="w-9 h-9 shrink-0 mt-0.5 cursor-pointer hover:opacity-80">
                     <img 
                         src={getSecureUrl(owner?.avatar)} 
                         className="w-full h-full rounded-full object-cover border border-zinc-700 shadow-md bg-zinc-800" 
@@ -40,11 +44,17 @@ function VideoCard(props) {
                 </div>
 
                 <div className="text-left flex-1 min-w-0">
-                    <h3 className="font-bold text-[13.5px] line-clamp-2 leading-tight text-gray-100 group-hover:text-white transition-colors tracking-tight">
-                        {title}
-                    </h3>
+                    <Link to={`/video/${_id}`}>
+                        <h3 className="font-bold text-[13.5px] line-clamp-2 leading-tight text-gray-100 group-hover:text-white transition-colors tracking-tight">
+                            {title}
+                        </h3>
+                    </Link>
                     <div className="mt-1 space-y-0.5">
-                        <p className="text-[12px] font-medium text-gray-400 hover:text-white transition-colors truncate">
+                        {/* Channel Name - Click to Profile */}
+                        <p 
+                            onClick={goToChannel} 
+                            className="text-[12px] font-medium text-gray-400 hover:text-white transition-colors truncate cursor-pointer w-fit"
+                        >
                             {owner?.fullName || owner?.username || "Unknown Channel"}
                         </p>
                         <p className="text-[11px] font-bold text-zinc-500 flex items-center gap-1">
@@ -55,7 +65,7 @@ function VideoCard(props) {
                     </div>
                 </div>
             </div>
-        </Link>
+        </div>
     );
 }
 
