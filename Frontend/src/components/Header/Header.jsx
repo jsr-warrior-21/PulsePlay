@@ -99,12 +99,12 @@ function Header() {
 
       {/* Logo Section */}
 
-<Link to='/' className='flex items-center gap-3 group outline-none h-full'>
+<Link to='/' className='flex items-center gap-3 group outline-none h-12'>
     <div className='relative w-10 h-10 flex items-center justify-center shrink-0'>
         {/* Blue Aura Glow */}
         <div className='absolute inset-0 bg-blue-600 rounded-xl blur-lg opacity-0 group-hover:opacity-30 transition-all duration-500'></div>
         
-        {/* Main Logo Icon */}
+        {/* Main Logo Icon - P size increased from 85 to 95 */}
         <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_10px_rgba(59,130,246,0.3)]">
             <defs>
                 <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -113,29 +113,29 @@ function Header() {
                 </linearGradient>
             </defs>
 
-            {/* The Main "P" Shape */}
+            {/* The Main "P" Shape - Adjusted for larger scale */}
             <path 
-                d="M32 22C32 19.2386 34.2386 17 37 17H63C75.1503 17 85 26.8497 85 39C85 51.1503 75.1503 61 63 61H46V78C46 80.7614 43.7614 83 41 83C38.2386 83 36 80.7614 36 78V22H32Z" 
+                d="M28 15C28 12.2386 30.2386 10 33 10H65C79.9117 10 92 22.0883 92 37C92 51.9117 79.9117 64 65 64H43V85C43 87.7614 40.7614 90 38 90C35.2386 90 33 87.7614 33 85V15H28Z" 
                 fill="url(#blueGrad)"
                 className="transition-all duration-500 group-hover:brightness-110"
             />
             
-            {/* Inner Play Arrow */}
+            {/* Inner Play Arrow - Positioned slightly better for the new P */}
             <path 
-                d="M54 32L68 39L54 46V32Z" 
+                d="M52 28L70 37L52 46V28Z" 
                 fill="white" 
-                className="group-hover:translate-x-0.5 transition-transform duration-300"
+                className="group-hover:translate-x-1 transition-transform duration-300"
             />
         </svg>
     </div>
 
-    {/* Brand Text - Fixed Alignment */}
-    <div className='flex flex-col justify-center hidden sm:flex pt-1'> 
-        <h1 className='text-[20px] font-black tracking-tighter leading-[0.8] flex items-center'>
+    {/* Brand Text - Perfectly Centered with Logo */}
+    <div className='flex flex-col justify-center hidden sm:flex h-full'> 
+        <h1 className='text-[20px] font-black tracking-tighter leading-none flex items-center'>
             <span className='text-white'>PULSE</span>
             <span className='text-blue-500 ml-1'>PLAY</span>
         </h1>
-        <div className='flex items-center gap-1.5 mt-1.5'>
+        <div className='flex items-center gap-1.5 mt-1'>
             <div className='w-1 h-1 bg-blue-500 rounded-full animate-pulse'></div>
             <span className='text-[8px] font-bold text-zinc-500 uppercase tracking-[0.3em]'>
                 Premium Studio
