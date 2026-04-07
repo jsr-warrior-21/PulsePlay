@@ -4,14 +4,14 @@ import { ApiError } from '../utils/apiError.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiResponse } from '../utils/apiResponse.js'
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
+import { User } from "../models/users.model.js";
 
 // 1. Get all videos with optimized search and filters
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
-    
     const pipeline = []
 
-    // Match Stage for search and filters
+    // 1. Initial Match (Only Published)
     const matchStage = { isPublished: true };
 
     if (userId) {
@@ -19,28 +19,17 @@ const getAllVideos = asyncHandler(async (req, res) => {
         matchStage.owner = new mongoose.Types.ObjectId(userId)
     }
 
-    if (query) {
-        matchStage.$or = [
-            { title: { $regex: query.trim(), $options: "i" } },
-            { description: { $regex: query.trim(), $options: "i" } }
-        ]
-    }
-
+    // Pehle basic filter lagao
     pipeline.push({ $match: matchStage })
 
-    // Sorting logic
-    const sortField = sortBy || "createdAt"
-    const sortOrder = sortType === "asc" ? 1 : -1
-    pipeline.push({ $sort: { [sortField]: sortOrder } })
-
-    // Lookup Owner Details
+    // 2. Lookup Owner (Taki username/fullName par search kar sakein)
     pipeline.push(
         {
             $lookup: {
                 from: "users",
                 localField: "owner",
                 foreignField: "_id",
-                as: "owner",
+                as: "ownerDetails",
                 pipeline: [
                     {
                         $project: {
@@ -54,13 +43,31 @@ const getAllVideos = asyncHandler(async (req, res) => {
         },
         {
             $addFields: {
-                owner: { $first: "$owner" }
+                owner: { $first: "$ownerDetails" }
             }
         }
     )
 
-    const videoAggregate = Video.aggregate(pipeline)
+    //  3. Search Logic (Title OR Username OR FullName)
+    if (query) {
+        pipeline.push({
+            $match: {
+                $or: [
+                    { "title": { $regex: query.trim(), $options: "i" } },
+                    { "description": { $regex: query.trim(), $options: "i" } },
+                    { "owner.username": { $regex: query.trim(), $options: "i" } },
+                    { "owner.fullName": { $regex: query.trim(), $options: "i" } }
+                ]
+            }
+        });
+    }
 
+    // 4. Sorting
+    const sortField = sortBy || "createdAt"
+    const sortOrder = sortType === "asc" ? 1 : -1
+    pipeline.push({ $sort: { [sortField]: sortOrder } })
+
+    const videoAggregate = Video.aggregate(pipeline)
     const options = {
         page: parseInt(page, 10),
         limit: parseInt(limit, 10)
@@ -117,9 +124,9 @@ const getVideoById = asyncHandler(async (req, res) => {
     const videoData = await Video.findById(videoId);
     if (!videoData) throw new ApiError(404, "Video not found");
 
+    // 1. UNIQUE VIEWS LOGIC
     if (userId) {
         const isOwner = videoData.owner.toString() === userId.toString();
-        // Check if user ID is NOT in the viewedBy array
         const hasNotViewed = !videoData.viewedBy.includes(userId);
 
         if (!isOwner && hasNotViewed) {
@@ -128,11 +135,19 @@ const getVideoById = asyncHandler(async (req, res) => {
                 $inc: { views: 1 }                
             });
         }
-    } else {
-       
-    }
-    // ------------------------------------
+        await User.findByIdAndUpdate(userId, {
+            $pull: { watchHistory: videoId }
+        });
+        await User.findByIdAndUpdate(userId, {
+            $push: { watchHistory: videoId }
+        });
 
+    } else {
+        // Guest views logic if needed
+        // await Video.findByIdAndUpdate(videoId, { $inc: { views: 1 } });
+    }
+
+    // 3. AGGREGATION TO FETCH VIDEO DETAILS
     const video = await Video.aggregate([
         { $match: { _id: new mongoose.Types.ObjectId(videoId) } },
         {
@@ -190,7 +205,7 @@ const getVideoById = asyncHandler(async (req, res) => {
 
     if (!video?.length) throw new ApiError(404, "Video not found");
 
-    return res.status(200).json(new ApiResponse(200, video[0], "Success"));
+    return res.status(200).json(new ApiResponse(200, video[0], "Video fetched and history updated"));
 });
 
 // 4. Update video

@@ -1,40 +1,71 @@
 import React, { useEffect, useState } from 'react'
 import axiosInstance from '../api/axios'
-import VideoCard from '../components/VideoCard'
 
 function History() {
     const [history, setHistory] = useState([])
     const [loading, setLoading] = useState(true)
 
+    const fetchHistory = async () => {
+        try {
+            const res = await axiosInstance.get("/users/history")
+            setHistory(res.data.data || [])
+        } catch (err) {
+            console.error("Fetch history error:", err)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleClearHistory = async () => {
+        if (!window.confirm("Are you sure you want to clear your entire watch history?")) return;
+        try {
+            await axiosInstance.post("/users/clear-history")
+            setHistory([])
+        } catch (err) {
+            alert("Failed to clear history")
+        }
+    }
+
     useEffect(() => {
-        axiosInstance.get("/users/history") // Endpoint #27
-            .then(res => {
-                setHistory(res.data.data || [])
-                setLoading(false)
-            })
+        fetchHistory()
     }, [])
 
     return (
-        <div className='max-w-6xl mx-auto p-4 text-left'>
-            <div className='flex justify-between items-center mb-8'>
-                <h1 className='text-3xl font-black'>Watch History</h1>
-                <button className='text-red-500 text-sm font-bold hover:bg-red-500/10 px-4 py-2 rounded-full'>Clear all history</button>
+        <div className='max-w-6xl mx-auto p-4 md:p-8 text-left min-h-screen text-white'>
+            <div className='flex justify-between items-center mb-10 border-b border-zinc-800 pb-6'>
+                <h1 className='text-3xl md:text-5xl font-black uppercase italic tracking-tighter'>Watch History</h1>
+                {history.length > 0 && (
+                    <button 
+                        onClick={handleClearHistory}
+                        className='text-red-500 text-xs font-black uppercase tracking-widest hover:bg-red-500/10 px-6 py-2 rounded-full border border-red-500/20 transition-all'
+                    >
+                        Clear all history
+                    </button>
+                )}
             </div>
 
-            {loading ? <p>Loading history...</p> : (
-                <div className='flex flex-col gap-4'>
+            {loading ? (
+                <p className="animate-pulse text-zinc-600 font-black uppercase italic tracking-widest">Syncing History...</p>
+            ) : (
+                <div className='flex flex-col gap-6'>
                     {history.length > 0 ? history.map(v => (
-                        <div key={v._id} className='flex flex-col md:flex-row gap-4 bg-[#1a1a1a] p-4 rounded-2xl border border-gray-800 hover:border-gray-600 transition cursor-pointer'>
-                            <div className='w-full md:w-64 aspect-video shrink-0'>
-                                <img src={v.thumbnail} className='w-full h-full object-cover rounded-xl' alt="" />
+                        <div key={v._id} className='flex flex-col md:flex-row gap-6 bg-[#1a1a1a] p-5 rounded-[2rem] border border-zinc-800 hover:border-zinc-600 transition-all group shadow-xl'>
+                            <div className='w-full md:w-80 aspect-video shrink-0 overflow-hidden rounded-2xl'>
+                                <img src={v.thumbnail} className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-500' alt={v.title} />
                             </div>
-                            <div className='flex-1'>
-                                <h2 className='text-xl font-bold line-clamp-2'>{v.title}</h2>
-                                <p className='text-gray-400 text-sm mt-1'>{v.owner.fullName} • {v.views} views</p>
-                                <p className='text-gray-500 text-xs mt-4 line-clamp-2'>{v.description}</p>
+                            <div className='flex-1 flex flex-col justify-center'>
+                                <h2 className='text-2xl font-black tracking-tight line-clamp-2 italic uppercase'>{v.title}</h2>
+                                <p className='text-zinc-500 font-bold text-sm mt-1 uppercase tracking-wider'>
+                                    {v.owner?.fullName} <span className="mx-2">•</span> {v.views} views
+                                </p>
+                                <p className='text-zinc-400 text-sm mt-4 line-clamp-2 font-medium leading-relaxed'>{v.description}</p>
                             </div>
                         </div>
-                    )) : <p className='text-gray-500 py-20 text-center italic'>Watch History Empty.</p>}
+                    )) : (
+                        <div className="py-40 text-center">
+                            <p className='text-zinc-600 font-black uppercase italic tracking-widest'>Watch History Empty.</p>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
