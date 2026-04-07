@@ -119,7 +119,7 @@ function Header() {
                             )}
                         </button>
 
-                        {/* Notification Dropdown - Glassmorphism */}
+                        {/* Notification Dropdown */}
                         {showNotif && (
                             <div className="absolute top-14 right-0 w-[320px] md:w-[380px] bg-[#121212] border border-white/10 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-5 z-[110] animate-in fade-in slide-in-from-top-2 duration-300">
                                 <div className="flex justify-between items-center mb-5">
@@ -148,9 +148,13 @@ function Header() {
                             </div>
                         )}
 
-                        {/* Create Button */}
-                        <Link to='/add-video' className='hidden sm:flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-all active:scale-95'>
-                            <Plus size={16} strokeWidth={3} /> Create
+                        {/* Create Button - Fixed for Mobile (+) */}
+                        <Link 
+                            to='/add-video' 
+                            className='flex items-center justify-center gap-2 bg-white text-black p-2.5 sm:px-5 sm:py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-all active:scale-95 shadow-lg'
+                        >
+                            <Plus size={18} strokeWidth={3} /> 
+                            <span className='hidden sm:block'>Create</span>
                         </Link>
 
                         {/* User Profile */}
@@ -158,7 +162,6 @@ function Header() {
                             <img src={getSecureUrl(userData?.avatar)} className='w-10 h-10 rounded-2xl object-cover border-2 border-white/5 hover:border-blue-500/50 transition-all shadow-lg'/>
                         </Link>
                         
-                        {/* Premium Logout Style */}
                         <div className="hidden lg:block border-l border-white/5 h-8 ml-2"></div>
                         <LogoutBtn />
                     </div>
