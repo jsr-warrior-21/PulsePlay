@@ -10,12 +10,29 @@ function ChannelProfile() {
     const [tweets, setTweets] = useState([])
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState("videos")  
+
+    // 🔥 Naya Subscribe Handle Function
+    const handleSubscribe = async () => {
+        try {
+            await axiosInstance.post(`/subscriptions/c/${channel._id}`);
+            
+            // Optimistic UI Update: Turant button aur count 
+            setChannel(prev => ({
+                ...prev,
+                isSubscribed: !prev.isSubscribed,
+                subscriberCount: prev.isSubscribed ? prev.subscriberCount - 1 : prev.subscriberCount + 1
+            }));
+        } catch (err) {
+            console.error("Subscription Error:", err);
+            alert("Action failed. Try again.");
+        }
+    };
+
     const handleToggleLike = async (tweetId) => {
         try {
             const res = await axiosInstance.post(`/likes/toggle/tweet/${tweetId}`);
             const isLikedNow = res.data.data.isLiked;
 
-            // Optimistic UI update for the tweets list
             setTweets(prev => prev.map(t => {
                 if (t._id === tweetId) {
                     return {
@@ -35,16 +52,13 @@ function ChannelProfile() {
         const fetchChannelData = async () => {
             setLoading(true)
             try {
-                // 1. Get Channel Profile
                 const channelRes = await axiosInstance.get(`/users/c/${username}`)
                 const channelData = channelRes.data.data
                 setChannel(channelData)
 
-                // 2. Get Channel Videos
                 const videoRes = await axiosInstance.get(`/videos?userId=${channelData._id}`)
                 setVideos(videoRes.data.data.docs || [])
 
-                // 3. Get Channel Tweets (Community Feed)
                 const tweetRes = await axiosInstance.get(`/tweets/user/${channelData._id}`)
                 setTweets(tweetRes.data.data || [])
 
@@ -61,7 +75,6 @@ function ChannelProfile() {
 
     return (
         <div className="min-h-screen bg-[#0f0f0f] text-white">
-            {/* Cover Image */}
             <div className="h-40 md:h-64 bg-zinc-900 w-full overflow-hidden border-b border-zinc-800">
                 {channel.coverImage ? (
                     <img src={getSecureUrl(channel.coverImage)} className="w-full h-full object-cover" alt="cover" />
@@ -70,18 +83,21 @@ function ChannelProfile() {
                 )}
             </div>
 
-            {/* Profile Info Section */}
             <div className="max-w-6xl mx-auto px-4 py-8 flex flex-col md:flex-row items-center gap-8 text-left">
                 <img src={getSecureUrl(channel.avatar)} className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-black object-cover shadow-2xl" />
                 <div className="flex-1">
-                    <h1 className="text-4xl font-black tracking-tighter  italic">{channel.fullName}</h1>
+                    <h1 className="text-4xl font-black tracking-tighter italic">{channel.fullName}</h1>
                     <p className="text-zinc-500 font-bold mt-1 text-lg">@{channel.username}</p>
                     <div className="flex gap-4 mt-2 text-sm text-zinc-400 font-medium">
                         <span>{channel.subscriberCount} Subscribers</span>
                         <span>•</span>
                         <span>{videos.length} Videos</span>
                     </div>
-                    <button className={`mt-6 px-10 py-2.5 rounded-full font-black text-xs uppercase tracking-widest transition-all shadow-lg ${
+                    
+                    {/*  Updated Button with onClick */}
+                    <button 
+                        onClick={handleSubscribe}
+                        className={`mt-6 px-10 py-2.5 rounded-full font-black text-xs uppercase tracking-widest transition-all shadow-lg ${
                         channel.isSubscribed ? "bg-zinc-800 text-zinc-400" : "bg-white text-black hover:bg-zinc-200"
                     }`}>
                         {channel.isSubscribed ? "Subscribed" : "Subscribe"}
@@ -89,7 +105,6 @@ function ChannelProfile() {
                 </div>
             </div>
 
-            {/* Navigation Tabs */}
             <div className="max-w-6xl mx-auto px-4 mt-4">
                 <div className="flex gap-8 border-b border-zinc-800">
                     <button 
@@ -107,10 +122,8 @@ function ChannelProfile() {
                 </div>
             </div>
 
-            {/* Tab Content Section */}
             <div className="max-w-6xl mx-auto px-4 mt-8 pb-20 text-left">
                 {activeTab === "videos" ? (
-                    /* Videos Tab Layout */
                     videos.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {videos.map(v => <VideoCard key={v._id} video={v} />)}
@@ -119,7 +132,6 @@ function ChannelProfile() {
                         <p className="text-center text-zinc-500 py-20 italic text-sm uppercase tracking-widest font-bold">No videos uploaded by this channel.</p>
                     )
                 ) : (
-                    /* Community Tab Layout (Tweets) */
                     <div className="max-w-3xl mx-auto space-y-6">
                         {tweets.length > 0 ? tweets.map(t => (
                             <div key={t._id} className="bg-[#1a1a1a] p-6 rounded-[2.5rem] border border-zinc-800 shadow-xl">
@@ -139,7 +151,6 @@ function ChannelProfile() {
                                         )}
 
                                         <div className="flex items-center gap-4 mt-4 pt-3 border-t border-zinc-800/30">
-                                            {/* 🔥 Corrected Like Button with onClick handler */}
                                             <button 
                                                 onClick={() => handleToggleLike(t._id)}
                                                 className="flex items-center gap-1.5 hover:bg-zinc-800/50 px-3 py-1.5 rounded-full transition-all group"

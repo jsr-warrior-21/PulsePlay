@@ -3,6 +3,8 @@ import { useSelector } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 import axiosInstance, { getSecureUrl } from '../../api/axios'
 import LogoutBtn from './LogoutBtn'
+// Premium Icons
+import { Bell, Search, Plus, X, CheckCheck, Trash2, Zap } from 'lucide-react'
 
 function Header() {
     const { status, userData } = useSelector((state) => state.auth)
@@ -59,7 +61,6 @@ function Header() {
         try {
             await axiosInstance.delete(`/notifications/${id}`)
             setNotifications(prev => prev.filter(n => n._id !== id))
-            // Count refresh agar wo unread thi
             const target = notifications.find(n => n._id === id)
             if (target && !target.isRead) setUnreadCount(prev => Math.max(0, prev - 1))
         } catch (err) { console.error("Delete failed", err) }
@@ -68,7 +69,7 @@ function Header() {
     const getNotificationMessage = (n) => {
         const sender = n.fromUser?.username || "Someone";
         switch (n.type) {
-            case "video_like": return `${sender} liked your video: ${n.video?.title || ""}`;
+            case "video_like": return `${sender} liked your video`;
             case "comment": return `${sender} commented on your video`;
             case "subscription": return `${sender} subscribed to your channel`;
             case "comment_like": return `${sender} liked your comment`;
@@ -77,70 +78,94 @@ function Header() {
     }
 
     return (
-        <header className='h-16 bg-[#0f0f0f] border-b border-zinc-800 sticky top-0 z-50 px-4 flex items-center justify-between gap-4'>
-            <style>{`.no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }`}</style>
+        <header className='h-20 bg-[#050505]/80 backdrop-blur-md border-b border-white/5 fixed top-0 left-0 w-full z-[100] px-4 md:px-8 flex items-center justify-between gap-4'>
+            <style>{`.no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
             
-            <Link to='/' className='text-xl font-black text-white shrink-0'>
-                <span className='bg-red-600 px-2 py-0.5 rounded-lg'>P</span> PulsePlay
+            {/* Logo Section */}
+            <Link to='/' className='flex items-center gap-2 group'>
+                <div className='bg-blue-600 p-1.5 rounded-xl group-hover:shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all'>
+                    <Zap size={20} fill="white" className="text-white" />
+                </div>
+                <span className='text-xl font-black text-white tracking-tighter italic uppercase hidden sm:block'>PulsePlay</span>
             </Link>
 
-            <form onSubmit={handleSearch} className="flex-1 max-w-xl hidden md:block text-left">
+            {/* Search Bar - Responsive */}
+            <form onSubmit={handleSearch} className="flex-1 max-w-2xl hidden md:block">
                 <div className="relative group">
                     <input 
                         type="text"
-                        className="w-full bg-[#121212] border border-zinc-800 rounded-full py-2 px-5 pl-10 outline-none focus:border-blue-600 transition-all text-sm font-medium text-white"
-                        placeholder="Search PulsePlay..."
+                        className="w-full bg-[#121212] border border-white/5 rounded-2xl py-2.5 px-5 pl-12 outline-none focus:border-blue-500/50 focus:bg-[#181818] transition-all text-sm font-medium text-white placeholder:text-zinc-600"
+                        placeholder="Search creators, videos..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
-                    <span className="absolute left-3.5 top-2.5 text-zinc-500"></span>
+                    <Search className="absolute left-4 top-2.5 text-zinc-500 group-focus-within:text-blue-500 transition-colors" size={18} />
                 </div>
             </form>
             
-            <div className='flex items-center gap-4 shrink-0'>
+            {/* Action Section */}
+            <div className='flex items-center gap-3 md:gap-6'>
                 {status ? (
-                    <div className='flex items-center gap-5 relative'>
-                        <button onClick={fetchNotifications} className={`relative text-xl transition-all ${unreadCount > 0 ? "text-yellow-500 animate-pulse" : "text-zinc-400"}`}>
-                            🔔
+                    <div className='flex items-center gap-4 md:gap-6 relative'>
+                        
+                        {/* Notification Bell */}
+                        <button onClick={fetchNotifications} className={`p-2 rounded-xl transition-all hover:bg-white/5 relative ${unreadCount > 0 ? "text-blue-500" : "text-zinc-400"}`}>
+                            <Bell size={22} strokeWidth={2} />
                             {unreadCount > 0 && (
-                                <span className="absolute -top-1 -right-1 flex h-4 w-4">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-4 w-4 bg-red-600 text-[10px] items-center justify-center font-bold text-white shadow-lg">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                                <span className="absolute top-2 right-2 flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
                                 </span>
                             )}
                         </button>
 
+                        {/* Notification Dropdown - Glassmorphism */}
                         {showNotif && (
-                            <div className="absolute top-12 right-0 w-84 bg-[#1a1a1a] border border-zinc-800 rounded-2xl shadow-2xl p-4 z-[100] animate-in fade-in zoom-in duration-200 min-w-[320px] text-left">
-                                <div className="flex justify-between items-center mb-3 border-b border-zinc-800 pb-2">
-                                    <h3 className="font-bold text-white uppercase italic tracking-tighter text-sm">Notifications</h3>
-                                    {notifications.length > 0 && <button onClick={handleClearAll} className="text-[10px] text-blue-500 font-bold hover:underline">MARK ALL READ</button>}
+                            <div className="absolute top-14 right-0 w-[320px] md:w-[380px] bg-[#121212] border border-white/10 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-5 z-[110] animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="flex justify-between items-center mb-5">
+                                    <h3 className="font-black text-white uppercase italic tracking-widest text-xs">Feed</h3>
+                                    {notifications.length > 0 && (
+                                        <button onClick={handleClearAll} className="flex items-center gap-1 text-[10px] text-blue-500 font-black uppercase tracking-tighter hover:text-blue-400 transition-colors">
+                                            <CheckCheck size={12} /> Mark all
+                                        </button>
+                                    )}
                                 </div>
                                 
-                                <div className="space-y-1.5 max-h-[400px] overflow-y-auto no-scrollbar">
+                                <div className="space-y-2 max-h-[450px] overflow-y-auto no-scrollbar">
                                     {notifications.length > 0 ? notifications.map(n => (
-                                        <div key={n._id} className={`group relative text-sm p-3 rounded-xl cursor-pointer flex gap-3 items-start transition-all ${!n.isRead ? "bg-blue-600/10 border-l-2 border-blue-500" : "hover:bg-zinc-800/50"}`} onClick={() => handleMarkAsRead(n._id)}>
-                                            <img src={getSecureUrl(n.fromUser?.avatar)} className="w-8 h-8 rounded-full object-cover shrink-0" alt="" />
-                                            <div className="flex-1 min-w-0 pr-4">
-                                                <p className={`${!n.isRead ? "text-white font-semibold" : "text-zinc-400"} text-[11px] leading-tight`}>{getNotificationMessage(n)}</p>
-                                                <span className="text-[9px] text-zinc-500 mt-1 block uppercase font-bold">{new Date(n.createdAt).toLocaleTimeString()}</span>
+                                        <div key={n._id} className={`group relative p-3 rounded-2xl cursor-pointer flex gap-3 items-center transition-all border border-transparent ${!n.isRead ? "bg-blue-600/5 border-blue-500/20" : "hover:bg-white/5"}`} onClick={() => handleMarkAsRead(n._id)}>
+                                            <img src={getSecureUrl(n.fromUser?.avatar)} className="w-10 h-10 rounded-full object-cover border border-white/10" alt="" />
+                                            <div className="flex-1 min-w-0 pr-6">
+                                                <p className={`${!n.isRead ? "text-white font-bold" : "text-zinc-500"} text-[11px] leading-tight`}>{getNotificationMessage(n)}</p>
+                                                <span className="text-[9px] text-zinc-600 mt-1 block font-black uppercase tracking-widest">{new Date(n.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                                             </div>
-                                            <button onClick={(e) => handleDeleteNotif(e, n._id)} className="opacity-0 group-hover:opacity-100 absolute right-2 top-2 text-zinc-500 hover:text-white transition-all p-1">✕</button>
-                                            {!n.isRead && <div className="w-2 h-2 bg-blue-500 rounded-full mt-1 shrink-0"></div>}
+                                            <button onClick={(e) => handleDeleteNotif(e, n._id)} className="opacity-0 group-hover:opacity-100 absolute right-3 text-zinc-600 hover:text-red-500 transition-all">
+                                                <Trash2 size={14} />
+                                            </button>
                                         </div>
-                                    )) : <p className="text-zinc-500 text-center py-10 text-xs italic">No notifications yet</p>}
+                                    )) : <div className='py-10 text-center'><p className="text-zinc-700 text-[10px] font-black uppercase tracking-[0.3em]">Quiet for now</p></div>}
                                 </div>
                             </div>
                         )}
 
-                        <Link to='/add-video' className='bg-[#272727] px-4 py-2 rounded-full text-sm font-bold hover:bg-[#333] transition-colors text-white'>+ Create</Link>
-                        <Link to='/dashboard'><img src={getSecureUrl(userData?.avatar)} className='w-9 h-9 rounded-full object-cover border border-zinc-700'/></Link>
+                        {/* Create Button */}
+                        <Link to='/add-video' className='hidden sm:flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-all active:scale-95'>
+                            <Plus size={16} strokeWidth={3} /> Create
+                        </Link>
+
+                        {/* User Profile */}
+                        <Link to='/dashboard' className='transition-transform active:scale-90'>
+                            <img src={getSecureUrl(userData?.avatar)} className='w-10 h-10 rounded-2xl object-cover border-2 border-white/5 hover:border-blue-500/50 transition-all shadow-lg'/>
+                        </Link>
+                        
+                        {/* Premium Logout Style */}
+                        <div className="hidden lg:block border-l border-white/5 h-8 ml-2"></div>
                         <LogoutBtn />
                     </div>
                 ) : (
-                    <div className='flex gap-3'>
-                        <Link to="/login" className='text-sm font-bold text-white'>Login</Link>
-                        <Link to="/signup" className='bg-white text-black px-4 py-2 rounded-full text-sm font-bold'>Sign up</Link>
+                    <div className='flex items-center gap-4'>
+                        <Link to="/login" className='text-[11px] font-black uppercase tracking-widest text-zinc-400 hover:text-white transition-colors'>Login</Link>
+                        <Link to="/signup" className='bg-blue-600 text-white px-6 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-500 transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)]'>Join Now</Link>
                     </div>
                 )}
             </div>

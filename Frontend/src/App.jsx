@@ -5,11 +5,12 @@ import axiosInstance from './api/axios'
 import { Outlet, useLocation } from 'react-router-dom'
 import Header from './components/Header/Header'
 import Sidebar from './components/Sidebar'
+import MobileNav from './components/MobileNav'
 
 function App() {
   const [loading, setLoading] = useState(true)
   const dispatch = useDispatch()
-  const location = useLocation() // Route change detect karne ke liye
+  const location = useLocation()
 
   useEffect(() => {
     const checkUser = async () => {
@@ -35,29 +36,33 @@ function App() {
 
   if (loading) {
     return (
-      <div className="h-screen bg-[#0f0f0f] flex flex-col items-center justify-center">
-        <div className="text-3xl font-black tracking-tighter text-white animate-bounce">
-          <span className="bg-red-600 px-3 py-1 rounded-xl mr-2 shadow-[0_0_15px_rgba(220,38,38,0.5)]">P</span>
+      <div className="h-screen bg-[#050505] flex flex-col items-center justify-center">
+        <div className="text-3xl font-black tracking-tighter text-white animate-bounce italic">
+          <span className="bg-blue-600 px-3 py-1 rounded-xl mr-2 shadow-[0_0_15px_rgba(37,99,235,0.5)]">P</span>
           PulsePlay
         </div>
-        <p className="text-gray-500 mt-4 text-sm font-mono tracking-widest uppercase">Connecting to backend...</p>
+        <p className="text-zinc-500 mt-4 text-xs font-black tracking-widest uppercase italic">Connecting to Pulse...</p>
       </div>
     )
   }
 
   return (
-    <div className="bg-[#0f0f0f] min-h-screen text-white flex flex-col">
+    <div className="bg-[#050505] min-h-screen text-white flex flex-col overflow-x-hidden selection:bg-blue-600/30">
       <Header />
 
-      <div className="flex flex-1 pt-16"> 
+     
+      <div className="flex flex-1 pt-16 md:pt-20"> 
         <Sidebar />
 
-        <main className="flex-1 transition-all duration-300 md:ml-64 w-full">
-          <div className="p-4 md:p-8 max-w-[1800px] mx-auto">
+         
+        <main className="flex-1 transition-all duration-300 lg:ml-64 w-full pb-20 lg:pb-0">
+          <div className="max-w-[1800px] mx-auto h-full px-0 sm:px-4">
             <Outlet />
           </div>
         </main>
       </div>
+
+      <MobileNav />
     </div>
   )
 }

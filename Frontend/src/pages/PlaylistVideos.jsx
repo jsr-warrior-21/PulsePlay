@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axios';
 import VideoCard from '../components/VideoCard';
+import { Trash2, Edit3, X, FolderOpen, PlayCircle, Save, AlertCircle } from 'lucide-react';
 
 function PlaylistVideos() {
     const { playlistId } = useParams();
@@ -32,10 +33,9 @@ function PlaylistVideos() {
     }, [playlistId]);
 
     const handleDeletePlaylist = async () => {
-        if (window.confirm("Are you sure you want to delete this entire playlist?")) {
+        if (window.confirm("Delete this entire playlist forever?")) {
             try {
                 await axiosInstance.delete(`/playlists/${playlistId}`);
-                alert("Playlist deleted successfully");
                 navigate("/playlists");
             } catch (err) {
                 alert("Failed to delete playlist");
@@ -50,7 +50,6 @@ function PlaylistVideos() {
                 name: newName,
                 description: newDesc
             });
-            alert("Playlist updated!");
             setIsEditing(false);
             fetchPlaylistData();
         } catch (err) {
@@ -58,8 +57,10 @@ function PlaylistVideos() {
         }
     };
 
-    const handleRemoveVideo = async (videoId) => {
-        if (window.confirm("Remove this video?")) {
+    const handleRemoveVideo = async (e, videoId) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (window.confirm("Remove this video from playlist?")) {
             try {
                 await axiosInstance.patch(`/playlists/remove/${videoId}/${playlistId}`);
                 fetchPlaylistData();
@@ -69,78 +70,112 @@ function PlaylistVideos() {
         }
     };
 
-    if (loading) return <div className="p-20 text-center text-white font-black italic uppercase animate-pulse">Loading Playlist...</div>;
+    if (loading) return <div className="h-screen bg-[#050505] flex items-center justify-center text-zinc-700 font-black italic tracking-[0.3em] animate-pulse uppercase text-xs">Syncing Pulse...</div>;
+
+    const validVideos = playlist?.videos?.filter(v => v !== null) || [];
 
     return (
-        <div className="flex-1 bg-[#0f0f0f] min-h-screen text-white p-4 md:p-8 text-left">
-            <div className="max-w-7xl mx-auto">
+        <div className="flex-1 bg-[#050505] min-h-screen text-white pb-32">
+            <div className="max-w-[1700px] mx-auto p-4 md:p-8">
                 
-                {/* Header Section */}
-                <div className="mb-10 border-b border-zinc-800 pb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                    {!isEditing ? (
-                        <div className="flex-1">
-                            <h1 className="text-5xl font-black uppercase tracking-tighter italic flex items-center gap-4">
-                                {playlist?.name}
-                                <button onClick={() => setIsEditing(true)} className="text-[10px] text-blue-500 font-black uppercase tracking-widest border border-blue-500/30 px-3 py-1 rounded-full hover:bg-blue-500 hover:text-white transition-all">Edit</button>
-                            </h1>
-                            <p className="text-zinc-500 mt-2 font-medium max-w-2xl">{playlist?.description || "No description provided."}</p>
-                            <div className="flex items-center gap-4 mt-4">
-                                <p className="bg-blue-600 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg shadow-blue-900/20">
-                                    {playlist?.videos?.filter(v => v !== null).length || 0} Videos
+                {/* Header / Banner Section */}
+                <div className="mb-12 bg-zinc-900/20 backdrop-blur-md p-8 md:p-12 rounded-[3rem] border border-white/5 shadow-2xl relative overflow-hidden group">
+                    <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-600/5 blur-[100px] rounded-full"></div>
+                    
+                    <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+                        {!isEditing ? (
+                            <div className="flex-1 text-left">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="p-3 bg-zinc-800 rounded-2xl border border-white/5">
+                                        <FolderOpen size={24} className="text-blue-500" />
+                                    </div>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 italic">Playlist collection</p>
+                                </div>
+                                
+                                <h1 className="text-4xl md:text-6xl font-black tracking-tighter italic mb-4 leading-none">
+                                    {playlist?.name}
+                                </h1>
+                                
+                                <p className="text-zinc-400 font-medium text-base md:text-lg max-w-3xl leading-relaxed">
+                                    {playlist?.description || "No description provided for this collection."}
                                 </p>
+                                
+                                <div className="flex flex-wrap items-center gap-4 mt-8">
+                                    <div className="flex items-center gap-2 bg-blue-600/10 px-5 py-2.5 rounded-2xl border border-blue-500/20">
+                                        <PlayCircle size={16} className="text-blue-500" />
+                                        <span className="text-[11px] font-black uppercase tracking-widest text-blue-500">{validVideos.length} Videos</span>
+                                    </div>
+                                    <button 
+                                        onClick={() => setIsEditing(true)} 
+                                        className="flex items-center gap-2 bg-white/5 hover:bg-white/10 px-6 py-2.5 rounded-2xl border border-white/5 text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg"
+                                    >
+                                        <Edit3 size={14}/> Edit details
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    ) : (
-                        <form onSubmit={handleUpdatePlaylist} className="flex-1 flex flex-col gap-3 max-w-md bg-[#1a1a1a] p-6 rounded-3xl border border-gray-800">
-                            <input 
-                                type="text" 
-                                value={newName} 
-                                onChange={(e) => setNewName(e.target.value)}
-                                className="bg-zinc-900 border border-zinc-700 p-3 rounded-xl outline-none focus:border-blue-500 font-bold"
-                                placeholder="Playlist Name"
-                            />
-                            <textarea 
-                                value={newDesc} 
-                                onChange={(e) => setNewDesc(e.target.value)}
-                                className="bg-zinc-900 border border-zinc-700 p-3 rounded-xl outline-none focus:border-blue-500 h-24 resize-none"
-                                placeholder="Description"
-                            />
-                            <div className="flex gap-2">
-                                <button type="submit" className="bg-blue-600 px-6 py-2 rounded-full text-[10px] font-black uppercase">SAVE CHANGES</button>
-                                <button type="button" onClick={() => setIsEditing(false)} className="bg-zinc-800 px-6 py-2 rounded-full text-[10px] font-black uppercase">CANCEL</button>
-                            </div>
-                        </form>
-                    )}
+                        ) : (
+                            <form onSubmit={handleUpdatePlaylist} className="flex-1 flex flex-col gap-5 max-w-xl bg-black/40 p-8 rounded-[2.5rem] border border-white/10 shadow-2xl animate-in fade-in slide-in-from-top-4 duration-500 text-left">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-zinc-500 ml-2 tracking-widest">Collection Name</label>
+                                    <input 
+                                        type="text" 
+                                        value={newName} 
+                                        onChange={(e) => setNewName(e.target.value)}
+                                        className="w-full bg-black border border-white/5 p-4 rounded-2xl outline-none focus:border-blue-500 font-bold transition-all"
+                                        placeholder="Playlist Name"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-zinc-500 ml-2 tracking-widest">Description</label>
+                                    <textarea 
+                                        value={newDesc} 
+                                        onChange={(e) => setNewDesc(e.target.value)}
+                                        className="w-full bg-black border border-white/5 p-4 rounded-2xl outline-none focus:border-blue-500 h-28 resize-none transition-all"
+                                        placeholder="Tell people about this pulse collection..."
+                                    />
+                                </div>
+                                <div className="flex gap-3 mt-2">
+                                    <button type="submit" className="flex-1 bg-white text-black py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-50 shadow-xl transition-all flex items-center justify-center gap-2">
+                                        <Save size={14}/> Save pulse
+                                    </button>
+                                    <button type="button" onClick={() => setIsEditing(false)} className="px-8 bg-zinc-800 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all">Cancel</button>
+                                </div>
+                            </form>
+                        )}
 
-                    <button 
-                        onClick={handleDeletePlaylist}
-                        className="bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white px-8 py-3 rounded-full text-[10px] font-black uppercase border border-red-600/50 transition-all shadow-lg active:scale-95"
-                    >
-                        Delete Playlist
-                    </button>
+                        <button 
+                            onClick={handleDeletePlaylist}
+                            className="bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-red-500/20 transition-all shadow-xl active:scale-95 flex items-center gap-2"
+                        >
+                            <Trash2 size={16} /> Delete collection
+                        </button>
+                    </div>
                 </div>
 
                 {/* Videos Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                    {playlist?.videos?.filter(v => v !== null).map(v => (
-                        <div key={v._id} className="relative group">
+                    {validVideos.map(v => (
+                        <div key={v._id} className="relative group p-2 bg-zinc-900/10 rounded-[2.5rem] border border-transparent hover:border-white/5 transition-all shadow-xl">
                             <VideoCard video={v} />
                             
                             <button 
-                                onClick={() => handleRemoveVideo(v._id)}
-                                className="absolute top-2 right-2 bg-black/90 hover:bg-red-600 text-white w-8 h-8 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-2xl border border-white/10 z-10"
+                                onClick={(e) => handleRemoveVideo(e, v._id)}
+                                className="absolute top-4 right-4 bg-black/60 backdrop-blur-md hover:bg-red-600 text-white p-2.5 rounded-xl opacity-0 group-hover:opacity-100 transition-all shadow-2xl border border-white/10 z-20 active:scale-90"
                                 title="Remove from playlist"
                             >
-                                ✕
+                                <X size={18} />
                             </button>
                         </div>
                     ))}
                 </div>
 
-                {(!playlist?.videos || playlist.videos.filter(v => v !== null).length === 0) && (
-                    <div className="py-32 text-center border-2 border-dashed border-zinc-800 rounded-[3rem] bg-[#141414]/50">
-                        <span className="text-5xl mb-4 block opacity-20">📁</span>
-                        <p className="text-zinc-600 font-black uppercase tracking-[0.3em] text-sm italic">This playlist is empty</p>
+                {validVideos.length === 0 && (
+                    <div className="py-40 text-center border-2 border-dashed border-white/5 rounded-[4rem] bg-zinc-900/5 backdrop-blur-sm flex flex-col items-center justify-center">
+                        <div className="p-6 bg-zinc-900/50 rounded-full mb-6">
+                            <AlertCircle size={40} className="text-zinc-700" />
+                        </div>
+                        <p className="text-zinc-600 font-black uppercase tracking-[0.4em] text-xs italic">Pulse library is empty</p>
+                        <p className="text-zinc-800 text-[10px] mt-2 font-bold uppercase tracking-widest">Add videos to see them here</p>
                     </div>
                 )}
             </div>

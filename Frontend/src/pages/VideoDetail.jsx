@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import axiosInstance, { getSecureUrl } from "../api/axios";
 import VideoCard from "../components/VideoCard"; 
+import { ThumbsUp, Share2, PlusSquare, MoreVertical, MessageSquare, CheckCircle2, X } from "lucide-react";
 
 function VideoDetail() {
   const { videoId } = useParams();
@@ -67,7 +68,7 @@ function VideoDetail() {
     window.scrollTo(0, 0); 
   }, [videoId, userData, fetchVideoData, fetchComments]);
 
-  // Logic functions (Same as before)
+  // Original Logic Functions (Left untouched as requested)
   const handleLike = async () => {
     if (!userData) return alert("Login please!");
     try {
@@ -120,16 +121,18 @@ function VideoDetail() {
     } catch { alert("Update failed!"); }
   };
 
-  if (!video) return <div className="text-white p-10 text-center animate-pulse font-bold">Loading PulsePlay...</div>;
+  if (!video) return <div className="h-screen bg-[#050505] flex items-center justify-center text-zinc-700 font-black italic tracking-[0.3em] animate-pulse uppercase text-xs">Syncing Pulse...</div>;
 
   return (
-    <div className="bg-[#0f0f0f] min-h-screen text-white">
-      <div className="max-w-[1550px] mx-auto flex flex-col lg:flex-row gap-6 p-4">
+    <div className="bg-[#050505] min-h-screen text-white pb-32">
+      <div className="max-w-[1700px] mx-auto flex flex-col xl:flex-row gap-8 p-4 md:p-6">
         
-        <div className="flex-1 lg:max-w-[calc(100%-400px)]">
-          <div className="aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-white/5">
+        {/* Main Content Side */}
+        <div className="flex-1 xl:max-w-[calc(100%-420px)]">
+          {/* Player Section */}
+          <div className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/5 ring-1 ring-white/10">
             <video 
-              key={videoId} // Re-mount when video changes
+              key={videoId}
               src={fixVideoUrl(video.videoFile)} 
               poster={getSecureUrl(video.thumbnail)}
               controls 
@@ -140,78 +143,114 @@ function VideoDetail() {
             </video>
           </div>
 
-          {/* Info */}
-          <div className="mt-4">
-            <h1 className="text-xl md:text-2xl font-black mb-3 leading-tight">{video.title}</h1>
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800 pb-5">
+          {/* Video Information Area */}
+          <div className="mt-6 text-left">
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight leading-tight mb-6">{video.title}</h1>
+            
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-white/5">
               <div className="flex items-center gap-4">
-                <img src={getSecureUrl(video.owner?.avatar)} className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover" alt="avatar" />
-                <div className="text-left">
-                  <p className="font-bold text-base md:text-lg">{video.owner?.fullName || video.owner?.username}</p>
-                  <p className="text-[12px] text-zinc-500 font-bold">{subscriberCount} subscribers</p>
+                <Link to={`/channel/${video.owner?.username}`}>
+                  <img src={getSecureUrl(video.owner?.avatar)} className="w-12 h-12 md:w-14 md:h-14 rounded-full object-cover border-2 border-zinc-900 shadow-xl" alt="avatar" />
+                </Link>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-black text-lg tracking-tight">{video.owner?.fullName || video.owner?.username}</p>
+                    <CheckCircle2 size={16} className="text-blue-500" fill="currentColor" />
+                  </div>
+                  <p className="text-[11px] text-zinc-500 font-black uppercase tracking-widest">{subscriberCount} pulse subscribers</p>
                 </div>
-                <button onClick={handleSubscribe} className={`px-5 py-2 rounded-full font-bold text-sm ml-2 transition-all ${isSubscribed ? "bg-zinc-800 text-zinc-400" : "bg-white text-black hover:bg-zinc-200"}`}>
+                <button 
+                  onClick={handleSubscribe} 
+                  className={`px-8 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest ml-4 transition-all active:scale-95 shadow-xl ${isSubscribed ? "bg-white/5 text-zinc-500" : "bg-white text-black hover:bg-zinc-200"}`}
+                >
                   {isSubscribed ? "Subscribed" : "Subscribe"}
                 </button>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button onClick={handleLike} className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all ${isLiked ? "bg-white text-black" : "bg-zinc-800 hover:bg-zinc-700"}`}>
-                  <span>{isLiked ? "❤️" : "🤍"}</span> {likesCount}
+              <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-2 md:pb-0">
+                <div className="flex items-center bg-white/5 p-1 rounded-2xl border border-white/5 shadow-lg">
+                  <button onClick={handleLike} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all ${isLiked ? "bg-white text-black" : "hover:bg-white/10 text-zinc-300"}`}>
+                    <ThumbsUp size={16} fill={isLiked ? "currentColor" : "none"} /> {likesCount}
+                  </button>
+                  <div className="w-[1px] h-6 bg-white/10 mx-1"></div>
+                  <button className="px-5 py-2.5 rounded-xl font-black text-zinc-300 hover:bg-white/10 transition-all active:scale-90">
+                    <Share2 size={16} />
+                  </button>
+                </div>
+                
+                <button onClick={() => setShowPlaylistModal(true)} className="bg-white/5 hover:bg-white/10 border border-white/5 px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center gap-2 shadow-lg transition-all active:scale-95">
+                  <PlusSquare size={16} /> Save
                 </button>
-                <button onClick={() => setShowPlaylistModal(true)} className="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2">
-                  <span>➕</span> Save
+                <button className="bg-white/5 hover:bg-white/10 border border-white/5 p-3 rounded-2xl shadow-lg transition-all active:scale-90">
+                  <MoreVertical size={16} />
                 </button>
               </div>
             </div>
             
-            <div className="mt-4 p-3 bg-zinc-900/50 rounded-xl text-left">
-               <p className="text-sm font-bold">{video.views.toLocaleString()} views • {new Date(video.createdAt).toLocaleDateString()}</p>
-               <p className="text-sm text-zinc-300 mt-2 line-clamp-3">{video.description}</p>
+            {/* Description Box */}
+            <div className="mt-8 p-6 bg-zinc-900/40 backdrop-blur-md rounded-[2.5rem] border border-white/5 shadow-xl transition-all hover:bg-zinc-900/60">
+               <div className="flex gap-4 mb-4">
+                  <p className="text-[12px] font-black uppercase tracking-[0.2em] text-white bg-blue-600/20 px-3 py-1 rounded-lg w-fit">{video.views.toLocaleString()} views</p>
+                  <p className="text-[12px] font-black uppercase tracking-[0.2em] text-zinc-500 py-1">{new Date(video.createdAt).toLocaleDateString()}</p>
+               </div>
+               <p className="text-[15px] text-zinc-300 font-medium leading-relaxed whitespace-pre-wrap">{video.description}</p>
             </div>
           </div>
 
-          {/* Comments */}
-          <div className="mt-8 text-left">
-            <h3 className="text-xl font-black mb-6 uppercase italic tracking-tighter">{comments.length} Comments</h3>
-            <div className="flex gap-3 mb-8">
-              <img src={getSecureUrl(userData?.avatar)} className="w-10 h-10 rounded-full object-cover" alt="me" />
+          {/* Comments Section */}
+          <div className="mt-12 text-left">
+            <div className="flex items-center gap-3 mb-10">
+               <MessageSquare size={20} className="text-blue-500" />
+               <h3 className="text-xl font-black uppercase italic tracking-tighter">{comments.length} Discussion pulse</h3>
+            </div>
+
+            <div className="flex gap-5 mb-12">
+              <img src={getSecureUrl(userData?.avatar)} className="w-10 h-10 md:w-12 md:h-12 rounded-2xl object-cover shadow-xl border border-white/5" alt="me" />
               <div className="flex-1">
-                <input className="w-full bg-transparent border-b border-zinc-700 py-1.5 focus:border-white outline-none text-sm transition-all font-medium" placeholder="Add a comment..." value={commentText} onChange={(e) => setCommentText(e.target.value)} />
-                <div className="flex justify-end mt-2">
-                  <button onClick={handleAddComment} className="bg-blue-600 hover:bg-blue-500 px-4 py-1.5 rounded-full font-bold text-xs">Comment</button>
+                <textarea 
+                  className="w-full bg-transparent border-b-2 border-zinc-800 py-3 focus:border-white outline-none text-base transition-all font-medium resize-none overflow-hidden h-12 hover:border-zinc-700" 
+                  placeholder="Add a pulse comment..." 
+                  value={commentText} 
+                  onChange={(e) => setCommentText(e.target.value)} 
+                />
+                <div className="flex justify-end mt-4 gap-3">
+                  <button onClick={() => setCommentText("")} className="text-zinc-500 font-black uppercase text-[10px] tracking-widest px-4 hover:text-white transition-colors">Cancel</button>
+                  <button onClick={handleAddComment} className="bg-white text-black hover:bg-zinc-200 px-8 py-2.5 rounded-full font-black text-[10px] uppercase tracking-widest shadow-lg transition-all active:scale-95">Comment</button>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-8">
               {comments.map((c) => (
-                <div key={c._id} className="flex gap-3">
-                  <img src={getSecureUrl(c.owner?.avatar)} className="w-9 h-9 rounded-full object-cover shrink-0" alt="user" />
+                <div key={c._id} className="flex gap-5 group/comment p-2 rounded-3xl transition-all hover:bg-white/5">
+                  <Link to={`/channel/${c.owner?.username}`}>
+                    <img src={getSecureUrl(c.owner?.avatar)} className="w-10 h-10 md:w-12 md:h-12 rounded-2xl object-cover shadow-lg" alt="user" />
+                  </Link>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-xs font-bold">@{c.owner?.username}</p>
-                      <span className="text-zinc-500 text-[10px]">{new Date(c.createdAt).toLocaleDateString()}</span>
+                    <div className="flex items-center gap-3 mb-1.5">
+                      <p className="text-[13px] font-black tracking-tight text-white italic">@{c.owner?.username}</p>
+                      <span className="text-zinc-600 text-[10px] font-black uppercase tracking-widest">{new Date(c.createdAt).toLocaleDateString()}</span>
                       {userData?._id === c.owner?._id && (
-                        <div className="flex gap-2 text-[10px] font-bold text-zinc-600 ml-auto uppercase tracking-tighter">
-                          <button onClick={() => { setEditingCommentId(c._id); setEditingText(c.content); }} className="hover:text-white">Edit</button>
-                          <button onClick={() => handleDeleteComment(c._id)} className="hover:text-red-500">Delete</button>
+                        <div className="flex gap-4 opacity-0 group-hover/comment:opacity-100 transition-all ml-auto">
+                          <button onClick={() => { setEditingCommentId(c._id); setEditingText(c.content); }} className="text-zinc-600 hover:text-blue-500 transition-colors"><Edit3 size={14}/></button>
+                          <button onClick={() => handleDeleteComment(c._id)} className="text-zinc-600 hover:text-red-500 transition-colors"><Trash2 size={14}/></button>
                         </div>
                       )}
                     </div>
                     {editingCommentId === c._id ? (
-                      <div className="mt-1">
-                        <input className="w-full bg-zinc-900 border-b border-blue-500 py-1 outline-none text-xs" value={editingText} onChange={(e) => setEditingText(e.target.value)} autoFocus />
-                        <div className="flex gap-2 mt-1 justify-end">
-                          <button onClick={() => setEditingCommentId(null)} className="text-[9px] font-bold text-zinc-500">Cancel</button>
-                          <button onClick={() => handleUpdateComment(c._id)} className="text-[9px] font-bold text-blue-500">Save</button>
+                      <div className="mt-2 bg-black/40 p-4 rounded-2xl border border-blue-500/30">
+                        <textarea className="w-full bg-transparent py-1 outline-none text-sm text-white resize-none" value={editingText} onChange={(e) => setEditingText(e.target.value)} autoFocus />
+                        <div className="flex gap-4 mt-4 justify-end">
+                          <button onClick={() => setEditingCommentId(null)} className="text-[10px] font-black uppercase text-zinc-500">Cancel</button>
+                          <button onClick={() => handleUpdateComment(c._id)} className="bg-blue-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase">Update</button>
                         </div>
                       </div>
                     ) : (
-                      <p className="text-[14px] text-zinc-300 mt-1">{c.content}</p>
+                      <p className="text-[15px] text-zinc-300 leading-relaxed break-words">{c.content}</p>
                     )}
-                    <button onClick={() => handleCommentLike(c._id)} className={`mt-2 text-[11px] font-bold flex items-center gap-1 ${c.isLiked ? "text-blue-500" : "text-zinc-500"}`}>
-                       <span>{c.isLiked ? "💙" : "👍"}</span> {c.likesCount || 0}
+                    <button onClick={() => handleCommentLike(c._id)} className={`mt-4 px-4 py-2 rounded-xl border border-white/5 flex items-center gap-2 transition-all ${c.isLiked ? "bg-blue-500/10 text-blue-500 border-blue-500/20" : "text-zinc-600 hover:text-zinc-300"}`}>
+                       <ThumbsUp size={14} fill={c.isLiked ? "currentColor" : "none"} />
+                       <span className="text-[12px] font-black">{c.likesCount || 0}</span>
                     </button>
                   </div>
                 </div>
@@ -220,33 +259,62 @@ function VideoDetail() {
           </div>
         </div>
 
-        {/* Suggestions */}
-        <div className="lg:w-[400px] flex flex-col gap-4 text-left">
-           <h4 className="text-sm font-black uppercase italic text-zinc-500 tracking-widest border-b border-zinc-800 pb-2 mb-2">Up Next</h4>
-           {suggestedVideos.map((v) => (
-             <div key={v._id} className="scale-95 origin-left hover:scale-100 transition-transform">
-                <VideoCard video={v} />
-             </div>
-           ))}
+        {/* Sidebar Suggestions Area */}
+        <div className="xl:w-[400px] flex flex-col gap-6 text-left">
+           <div className="flex items-center gap-3 border-b border-white/5 pb-4 mb-2">
+              <span className="w-1 h-6 bg-blue-600 rounded-full"></span>
+              <h4 className="text-[12px] font-black uppercase italic text-zinc-400 tracking-[0.3em]">Pulse queue</h4>
+           </div>
+           
+           <div className="flex flex-col gap-5 overflow-y-auto max-h-screen no-scrollbar pr-2">
+              {suggestedVideos.map((v) => (
+                <div key={v._id} className="scale-100 xl:scale-95 xl:origin-top-left transition-all hover:scale-100 hover:z-10 group/suggestion relative">
+                   <VideoCard video={v} />
+                   <div className="absolute top-2 right-2 opacity-0 group-hover/suggestion:opacity-100 transition-all">
+                      <button className="bg-black/60 backdrop-blur-md p-2 rounded-xl border border-white/10"><MoreVertical size={14}/></button>
+                   </div>
+                </div>
+              ))}
+           </div>
         </div>
 
       </div>
 
+      {/* Playlist Modal - Glass UI */}
       {showPlaylistModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100]">
-          <div className="bg-[#1a1a1a] p-6 rounded-2xl w-full max-w-[320px] shadow-2xl border border-gray-800">
-            <h2 className="text-xl font-bold mb-4 italic uppercase">Save to...</h2>
-            <div className="space-y-2 max-h-60 overflow-y-auto no-scrollbar">
-              {playlists.map((p) => (
-                <button key={p._id} onClick={() => axiosInstance.patch(`/playlists/add/${videoId}/${p._id}`).then(() => setShowPlaylistModal(false))} className="w-full flex items-center gap-3 p-3 hover:bg-[#272727] rounded-xl text-sm font-bold uppercase tracking-tighter">📁 {p.name}</button>
-              ))}
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center z-[150] p-4 animate-in fade-in duration-300">
+          <div className="bg-[#0f0f0f] p-8 rounded-[3rem] w-full max-w-[400px] shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10">
+            <div className="flex justify-between items-center mb-8">
+               <h2 className="text-2xl font-black italic uppercase tracking-tighter">Add to pulse</h2>
+               <button onClick={() => setShowPlaylistModal(false)} className="text-zinc-500 hover:text-white transition-colors"><X size={24}/></button>
             </div>
-            <button onClick={() => setShowPlaylistModal(false)} className="w-full mt-4 py-2 font-bold text-zinc-400 text-xs">CANCEL</button>
+            <div className="space-y-3 max-h-[350px] overflow-y-auto no-scrollbar pr-2">
+              {playlists.map((p) => (
+                <button 
+                  key={p._id} 
+                  onClick={() => axiosInstance.patch(`/playlists/add/${videoId}/${p._id}`).then(() => setShowPlaylistModal(false))} 
+                  className="w-full group flex items-center justify-between p-5 bg-white/5 hover:bg-blue-600 rounded-[1.5rem] border border-white/5 transition-all text-sm font-black uppercase tracking-tight text-left"
+                >
+                  <span className="group-hover:translate-x-1 transition-transform">📁 {p.name}</span>
+                  <PlusSquare size={16} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
+              ))}
+              {playlists.length === 0 && (
+                <div className="py-10 text-center">
+                   <p className="text-zinc-600 text-[10px] font-black uppercase tracking-widest italic">No playlists created yet</p>
+                </div>
+              )}
+            </div>
+            <button onClick={() => setShowPlaylistModal(false)} className="w-full mt-8 py-4 bg-zinc-900 border border-white/5 rounded-2xl font-black text-[11px] uppercase tracking-widest text-zinc-500 hover:text-white transition-all">Close</button>
           </div>
         </div>
       )}
     </div>
   );
 }
+
+// Local helper icons for Comment Edit/Delete
+const Edit3 = ({size}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+const Trash2 = ({size}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
 
 export default VideoDetail;
