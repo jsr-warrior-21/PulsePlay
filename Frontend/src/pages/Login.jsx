@@ -20,7 +20,7 @@ function Login() {
                 navigate("/")
             }
         } catch (err) {
-            setError(err.response?.data?.message || "Login fail ho gaya bhai!")
+            setError(err.response?.data?.message || "Login failed")
         }
     }
 

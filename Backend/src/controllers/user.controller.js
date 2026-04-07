@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose,{isValidObjectId} from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/apiError.js";
 import { User } from "../models/users.model.js";
@@ -408,6 +408,26 @@ const clearWatchHistory = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, [], "Watch history cleared successfully"));
 })
 
+
+const removeVideoFromHistory = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    if (!isValidObjectId(videoId)) throw new ApiError(400, "Invalid Video ID");
+
+    // $pull operator array mein se specific item nikaal deta hai
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $pull: { watchHistory: videoId }
+        },
+        { new: true }
+    );
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {}, "Video removed from history"));
+});
+
 export {
   userRegister,
   loginUser,
@@ -420,5 +440,6 @@ export {
   updateUserCoverImage,
   getUserChannelProfile,
   getWatchHistory,
-  clearWatchHistory
+  clearWatchHistory,
+  removeVideoFromHistory
 };
