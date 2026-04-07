@@ -33,6 +33,22 @@ function VideoDetail() {
     return secureUrl;
   };
 
+  const handleShare = () => {
+    const videoUrl = window.location.href;
+    navigator.clipboard.writeText(videoUrl)
+      .then(() => alert("Pulse link copied to clipboard"))
+      .catch(() => alert("Failed to copy link"));
+  };
+
+  const handleDeleteVideo = async () => {
+    if (!window.confirm("Are you sure you want to delete this video?")) return;
+    try {
+      await axiosInstance.delete(`/videos/${videoId}`);
+      alert("Video deleted successfully");
+      window.location.href = "/"; 
+    } catch (err) { alert("Delete failed"); }
+  };
+
   const fetchVideoData = useCallback(async () => {
     try {
       const videoRes = await axiosInstance.get(`/videos/${videoId}`);
@@ -68,9 +84,8 @@ function VideoDetail() {
     window.scrollTo(0, 0); 
   }, [videoId, userData, fetchVideoData, fetchComments]);
 
-  // Original Logic Functions (Left untouched as requested)
   const handleLike = async () => {
-    if (!userData) return alert("Login please!");
+    if (!userData) return alert("Login please");
     try {
       await axiosInstance.post(`/likes/toggle/video/${videoId}`);
       await fetchVideoData();
@@ -78,7 +93,7 @@ function VideoDetail() {
   };
 
   const handleSubscribe = async () => {
-    if (!userData) return alert("Login required!");
+    if (!userData) return alert("Login required");
     try {
       await axiosInstance.post(`/subscriptions/c/${video.owner._id}`);
       await fetchVideoData();
@@ -92,11 +107,11 @@ function VideoDetail() {
       const newComment = { ...res.data.data, owner: userData, likesCount: 0, isLiked: false };
       setComments(prev => [newComment, ...prev]);
       setCommentText("");
-    } catch { alert("Comment failed!"); }
+    } catch { alert("Comment failed"); }
   };
 
   const handleCommentLike = async (commentId) => {
-    if (!userData) return alert("Login required!");
+    if (!userData) return alert("Login required");
     try {
       const res = await axiosInstance.post(`/likes/toggle/comment/${commentId}`);
       const { isLiked } = res.data.data;
@@ -109,7 +124,7 @@ function VideoDetail() {
     try {
       await axiosInstance.delete(`/comments/c/${commentId}`);
       setComments(prev => prev.filter(c => c._id !== commentId));
-    } catch { alert("Delete failed!"); }
+    } catch { alert("Delete failed"); }
   };
 
   const handleUpdateComment = async (commentId) => {
@@ -118,7 +133,7 @@ function VideoDetail() {
       await axiosInstance.patch(`/comments/c/${commentId}`, { content: editingText });
       setComments(prev => prev.map(c => c._id === commentId ? { ...c, content: editingText } : c));
       setEditingCommentId(null);
-    } catch { alert("Update failed!"); }
+    } catch { alert("Update failed"); }
   };
 
   if (!video) return <div className="h-screen bg-[#050505] flex items-center justify-center text-zinc-700 font-black italic tracking-[0.3em] animate-pulse uppercase text-xs">Syncing Pulse...</div>;
@@ -127,10 +142,8 @@ function VideoDetail() {
     <div className="bg-[#050505] min-h-screen text-white pb-32">
       <div className="max-w-[1700px] mx-auto flex flex-col xl:flex-row gap-8 p-4 md:p-6">
         
-        {/* Main Content Side */}
         <div className="flex-1 xl:max-w-[calc(100%-420px)]">
-          {/* Player Section */}
-          <div className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/5 ring-1 ring-white/10">
+          <div className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/5 ring-1 ring-white/10 relative">
             <video 
               key={videoId}
               src={fixVideoUrl(video.videoFile)} 
@@ -143,11 +156,10 @@ function VideoDetail() {
             </video>
           </div>
 
-          {/* Video Information Area */}
           <div className="mt-6 text-left">
             <h1 className="text-2xl md:text-3xl font-black tracking-tight leading-tight mb-6">{video.title}</h1>
             
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-white/5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-white/5 relative">
               <div className="flex items-center gap-4">
                 <Link to={`/channel/${video.owner?.username}`}>
                   <img src={getSecureUrl(video.owner?.avatar)} className="w-12 h-12 md:w-14 md:h-14 rounded-full object-cover border-2 border-zinc-900 shadow-xl" alt="avatar" />
@@ -167,13 +179,14 @@ function VideoDetail() {
                 </button>
               </div>
 
-              <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-2 md:pb-0">
+              <div className="flex items-center gap-3 overflow-visible pb-2 md:pb-0 relative">
                 <div className="flex items-center bg-white/5 p-1 rounded-2xl border border-white/5 shadow-lg">
                   <button onClick={handleLike} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all ${isLiked ? "bg-white text-black" : "hover:bg-white/10 text-zinc-300"}`}>
                     <ThumbsUp size={16} fill={isLiked ? "currentColor" : "none"} /> {likesCount}
                   </button>
                   <div className="w-[1px] h-6 bg-white/10 mx-1"></div>
-                  <button className="px-5 py-2.5 rounded-xl font-black text-zinc-300 hover:bg-white/10 transition-all active:scale-90">
+                  
+                  <button onClick={handleShare} className="px-5 py-2.5 rounded-xl font-black text-zinc-300 hover:bg-white/10 transition-all active:scale-90">
                     <Share2 size={16} />
                   </button>
                 </div>
@@ -181,13 +194,42 @@ function VideoDetail() {
                 <button onClick={() => setShowPlaylistModal(true)} className="bg-white/5 hover:bg-white/10 border border-white/5 px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center gap-2 shadow-lg transition-all active:scale-95">
                   <PlusSquare size={16} /> Save
                 </button>
-                <button className="bg-white/5 hover:bg-white/10 border border-white/5 p-3 rounded-2xl shadow-lg transition-all active:scale-90">
-                  <MoreVertical size={16} />
-                </button>
+
+                {/*  Three Dots Dropdown - Fully Fixed for Mobile & Web */}
+                <div className="relative group focus-within:ring-0">
+                    <button className="bg-white/5 hover:bg-white/10 border border-white/5 p-3 rounded-2xl shadow-lg transition-all active:scale-90 outline-none">
+                      <MoreVertical size={16} />
+                    </button>
+                    {/* Positioned Right-Aligned, Opens Upwards with Max Z-Index */}
+                    <div className="absolute right-0 bottom-full mb-3 w-48 bg-[#121212] border border-white/10 rounded-[1.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.8)] opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 z-[999] p-2 overflow-hidden ring-1 ring-white/5">
+                        <div className="flex flex-col">
+                            {userData?._id === video.owner?._id ? (
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteVideo(); }} 
+                                  className="w-full text-left px-4 py-3 text-red-500 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 rounded-xl transition-colors flex items-center gap-2"
+                                >
+                                  Delete Pulse
+                                </button>
+                            ) : (
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); alert("Reported! Our team will check"); }} 
+                                  className="w-full text-left px-4 py-3 text-zinc-400 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 rounded-xl transition-colors"
+                                >
+                                  Report
+                                </button>
+                            )}
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                                className="w-full text-left px-4 py-3 text-zinc-300 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 rounded-xl transition-colors md:hidden"
+                            >
+                                Share Link
+                            </button>
+                        </div>
+                    </div>
+                </div>
               </div>
             </div>
             
-            {/* Description Box */}
             <div className="mt-8 p-6 bg-zinc-900/40 backdrop-blur-md rounded-[2.5rem] border border-white/5 shadow-xl transition-all hover:bg-zinc-900/60">
                <div className="flex gap-4 mb-4">
                   <p className="text-[12px] font-black uppercase tracking-[0.2em] text-white bg-blue-600/20 px-3 py-1 rounded-lg w-fit">{video.views.toLocaleString()} views</p>
@@ -197,7 +239,6 @@ function VideoDetail() {
             </div>
           </div>
 
-          {/* Comments Section */}
           <div className="mt-12 text-left">
             <div className="flex items-center gap-3 mb-10">
                <MessageSquare size={20} className="text-blue-500" />
@@ -259,7 +300,6 @@ function VideoDetail() {
           </div>
         </div>
 
-        {/* Sidebar Suggestions Area */}
         <div className="xl:w-[400px] flex flex-col gap-6 text-left">
            <div className="flex items-center gap-3 border-b border-white/5 pb-4 mb-2">
               <span className="w-1 h-6 bg-blue-600 rounded-full"></span>
@@ -280,7 +320,6 @@ function VideoDetail() {
 
       </div>
 
-      {/* Playlist Modal - Glass UI */}
       {showPlaylistModal && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center z-[150] p-4 animate-in fade-in duration-300">
           <div className="bg-[#0f0f0f] p-8 rounded-[3rem] w-full max-w-[400px] shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10">
@@ -313,7 +352,6 @@ function VideoDetail() {
   );
 }
 
-// Local helper icons for Comment Edit/Delete
 const Edit3 = ({size}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
 const Trash2 = ({size}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
 

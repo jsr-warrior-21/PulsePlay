@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axiosInstance, { getSecureUrl } from '../api/axios';
 import { useSelector } from 'react-redux';
-// Premium Icons
-import { Image as ImageIcon, Send, Heart, Trash2, Edit3, X, MoreHorizontal } from 'lucide-react';
+import { ImageIcon, Send, Heart, Trash2, Edit3, X, MessageSquare, Share2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 function Community() {
@@ -55,7 +54,7 @@ function Community() {
             setImageFile(null);
             setImagePreview(null);
         } catch (err) { 
-            alert("Failed to post the content. Please try again."); 
+            alert("Failed to post the content."); 
         }
     };
 
@@ -81,7 +80,7 @@ function Community() {
     };
 
     const handleRemoveImage = async (id) => {
-        if (!window.confirm("Are you sure you want to remove this photo?")) return;
+        if (!window.confirm("Remove this photo?")) return;
         try {
             await axiosInstance.patch(`/tweets/remove-image/${id}`);
             setTweets(tweets.map(t => t._id === id ? { ...t, image: "" } : t));
@@ -91,12 +90,12 @@ function Community() {
     };
 
     const handleDeleteTweet = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this post?")) return;
+        if (!window.confirm("Delete this post?")) return;
         try {
             await axiosInstance.delete(`/tweets/${id}`);
             setTweets(tweets.filter(t => t._id !== id));
         } catch (err) { 
-            alert("Failed to delete the post."); 
+            alert("Failed to delete."); 
         }
     };
 
@@ -107,7 +106,7 @@ function Community() {
             setTweets(tweets.map(t => t._id === id ? { ...t, content: editContent } : t));
             setEditingId(null);
         } catch (err) { 
-            alert("Failed to update the post."); 
+            alert("Failed to update."); 
         }
     };
 
@@ -116,14 +115,14 @@ function Community() {
     }, [userData]);
 
     return (
-        <div className="max-w-3xl mx-auto p-4 md:p-10 text-left min-h-screen text-white selection:bg-blue-500/30">
-            <h2 className="text-4xl font-black mb-12 uppercase italic tracking-tighter flex items-center gap-4">
+        <div className="max-w-3xl mx-auto p-4 md:p-10 text-left min-h-screen text-white selection:bg-blue-500/30 pb-32">
+            <h2 className="text-3xl md:text-4xl font-black mb-10 uppercase italic tracking-tighter flex items-center gap-4">
                 <span className="w-2 h-10 bg-blue-600 rounded-full"></span>
                 Community Feed
             </h2>
             
-            {/* Post Input Box - Glassmorphism */}
-            <div className="bg-zinc-900/40 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 mb-12 shadow-2xl transition-all hover:border-white/10">
+            {/* Input Box */}
+            <div className="bg-[#0f0f0f] p-6 md:p-8 rounded-[2.5rem] border border-white/5 mb-10 shadow-2xl ring-1 ring-white/10 hover:ring-blue-500/30 transition-all">
                 <div className="flex gap-4">
                     <img src={getSecureUrl(userData?.avatar)} className="w-12 h-12 rounded-2xl object-cover border border-white/10" alt="" />
                     <textarea 
@@ -135,11 +134,11 @@ function Community() {
                 </div>
 
                 {imagePreview && (
-                    <div className="relative mt-6 group bg-black/40 p-4 rounded-[2rem] border border-white/5 overflow-hidden shadow-2xl">
-                        <img src={imagePreview} className="w-full max-h-80 object-contain mx-auto rounded-2xl" alt="preview" />
+                    <div className="relative mt-6 group bg-black/40 p-4 rounded-3xl border border-white/5 overflow-hidden">
+                        <img src={imagePreview} className="w-full max-h-80 object-contain mx-auto rounded-2xl shadow-2xl" alt="preview" />
                         <button 
                             onClick={() => {setImageFile(null); setImagePreview(null)}} 
-                            className="absolute top-6 right-6 bg-black/80 text-white p-2 rounded-full hover:bg-red-600 border border-white/10 transition-all shadow-xl"
+                            className="absolute top-6 right-6 bg-black/80 text-white p-2.5 rounded-full hover:bg-red-600 border border-white/10 transition-all"
                         >
                             <X size={16} />
                         </button>
@@ -154,42 +153,42 @@ function Community() {
                         <div className="p-2.5 bg-white/5 rounded-xl group-hover:bg-blue-500/10 transition-all">
                             <ImageIcon size={20} />
                         </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest">Add Media</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Media</span>
                         <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleImageChange} />
                     </button>
                     
                     <button 
                         onClick={handlePostTweet} 
-                        className="bg-white text-black hover:bg-blue-50 px-10 py-3 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-lg transition-all active:scale-95 flex items-center gap-2"
+                        className="bg-white text-black hover:bg-blue-50 px-10 py-3.5 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl transition-all active:scale-95 flex items-center gap-2"
                     >
-                        <Send size={14} /> Post
+                        <Send size={14} /> Post pulse
                     </button>
                 </div>
             </div>
 
-            {/* Tweets Feed */}
-            <div className="space-y-8 pb-32">
+            {/* Posts Feed */}
+            <div className="space-y-8">
                 {tweets.map(t => (
-                    <div key={t._id} className="bg-zinc-900/20 backdrop-blur-sm p-8 rounded-[3rem] border border-white/5 group relative shadow-2xl hover:bg-zinc-900/40 transition-all duration-500">
-                        <div className="flex gap-6">
-                            <img src={getSecureUrl(t.owner?.avatar || userData?.avatar)} className="w-14 h-14 rounded-[1.2rem] object-cover border-2 border-white/5 shadow-2xl" alt="user avatar" />
+                    <div key={t._id} className="bg-zinc-900/20 p-6 md:p-8 rounded-[2.5rem] border border-white/5 group relative shadow-xl hover:bg-zinc-900/30 transition-all duration-300">
+                        <div className="flex gap-5">
+                            <img src={getSecureUrl(t.owner?.avatar || userData?.avatar)} className="w-12 h-12 rounded-2xl object-cover shadow-lg" alt="" />
                             <div className="flex-1">
                                 <div className="flex justify-between items-start mb-4">
                                     <div>
-                                        <h4 className="text-[13px] font-black uppercase italic tracking-tight text-white mb-1">
+                                        <h4 className="text-[14px] font-black italic text-white tracking-tight">
                                             {t.owner?.fullName || userData?.fullName}
                                         </h4>
-                                        <p className="text-[9px] text-zinc-500 font-black uppercase tracking-widest lowercase">
-                                            {t.createdAt ? formatDistanceToNow(new Date(t.createdAt), { addSuffix: true }).replace('about ', '') : "just now"}
+                                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">
+                                            {t.createdAt ? formatDistanceToNow(new Date(t.createdAt), { addSuffix: true }) : "just now"}
                                         </p>
                                     </div>
                                     
                                     {userData?._id === (t.owner?._id || t.owner) && (
-                                        <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
-                                            <button onClick={() => {setEditingId(t._id); setEditContent(t.content)}} className="p-2 bg-white/5 rounded-xl hover:text-blue-500 transition-colors">
+                                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                            <button onClick={() => {setEditingId(t._id); setEditContent(t.content)}} className="p-2.5 bg-white/5 rounded-xl hover:text-blue-500 transition-colors">
                                                 <Edit3 size={14} />
                                             </button>
-                                            <button onClick={() => handleDeleteTweet(t._id)} className="p-2 bg-white/5 rounded-xl hover:text-red-500 transition-colors">
+                                            <button onClick={() => handleDeleteTweet(t._id)} className="p-2.5 bg-white/5 rounded-xl hover:text-red-500 transition-colors">
                                                 <Trash2 size={14} />
                                             </button>
                                         </div>
@@ -197,32 +196,28 @@ function Community() {
                                 </div>
 
                                 {editingId === t._id ? (
-                                    <div className="mt-4 animate-in fade-in slide-in-from-top-2">
+                                    <div className="mt-4">
                                         <textarea 
-                                            className="w-full bg-black/40 border border-white/10 p-5 rounded-[1.5rem] text-zinc-200 outline-none focus:border-blue-500/50 transition-all font-medium" 
+                                            className="w-full bg-black/40 border border-white/10 p-5 rounded-2xl text-zinc-200 outline-none focus:border-blue-500/50" 
                                             value={editContent} 
                                             onChange={(e) => setEditContent(e.target.value)} 
                                         />
                                         <div className="flex gap-3 mt-4">
-                                            <button onClick={() => handleUpdateTweet(t._id)} className="bg-blue-600 px-8 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-500 transition-all">Save</button>
-                                            <button onClick={() => setEditingId(null)} className="bg-zinc-800 px-8 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-zinc-700 transition-all">Cancel</button>
+                                            <button onClick={() => handleUpdateTweet(t._id)} className="bg-blue-600 px-8 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">Save</button>
+                                            <button onClick={() => setEditingId(null)} className="bg-zinc-800 px-8 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">Cancel</button>
                                         </div>
                                     </div>
                                 ) : (
                                     <>
-                                        <p className="text-zinc-200 text-lg font-medium leading-relaxed mb-6 selection:bg-blue-500/50">{t.content}</p>
+                                        <p className="text-zinc-200 text-lg font-medium leading-relaxed mb-6">{t.content}</p>
                                         
                                         {t.image && (
-                                            <div className="mt-6 bg-black/40 rounded-[2.5rem] border border-white/5 p-4 group/img relative shadow-inner overflow-hidden">
-                                                <img 
-                                                    src={getSecureUrl(t.image)} 
-                                                    className="w-full max-h-[500px] object-contain mx-auto block transition-transform duration-1000 hover:scale-[1.05]" 
-                                                    alt="post content" 
-                                                />
+                                            <div className="mt-6 rounded-[2rem] overflow-hidden border border-white/5 relative group/img">
+                                                <img src={getSecureUrl(t.image)} className="w-full h-auto" alt="" />
                                                 {userData?._id === (t.owner?._id || t.owner) && (
                                                     <button 
                                                         onClick={() => handleRemoveImage(t._id)} 
-                                                        className="absolute top-6 right-6 bg-red-600 text-[9px] font-black uppercase tracking-[0.2em] px-5 py-2.5 rounded-full opacity-0 group-hover/img:opacity-100 transition-all shadow-2xl backdrop-blur-md border border-white/10"
+                                                        className="absolute top-4 right-4 bg-red-600 text-[10px] font-black px-4 py-2 rounded-full opacity-0 group-hover/img:opacity-100 transition-all"
                                                     >
                                                         Remove Media
                                                     </button>
@@ -233,15 +228,14 @@ function Community() {
                                         <div className="flex items-center gap-8 mt-8 pt-6 border-t border-white/5">
                                             <button 
                                                 onClick={() => handleToggleLike(t._id)}
-                                                className="flex items-center gap-3 group/like transition-all"
+                                                className={`flex items-center gap-2 font-black text-xs transition-all ${t.isLiked ? "text-red-500" : "text-zinc-500 hover:text-white"}`}
                                             >
-                                                <div className={`p-3 rounded-2xl transition-all ${t.isLiked ? "bg-red-500/10 text-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]" : "bg-white/5 text-zinc-500 group-hover/like:bg-zinc-800 group-hover/like:text-white"}`}>
-                                                    <Heart size={20} fill={t.isLiked ? "currentColor" : "none"} className="transition-transform group-active/like:scale-150" />
-                                                </div>
-                                                <span className={`text-[12px] font-black tracking-[0.2em] ${t.isLiked ? "text-red-500" : "text-zinc-500"}`}>
-                                                    {t.likesCount || 0}
-                                                </span>
+                                                <Heart size={18} fill={t.isLiked ? "currentColor" : "none"} className="transition-transform group-active:scale-125" />
+                                                {t.likesCount || 0}
                                             </button>
+                                            {/* <button className="flex items-center gap-2 text-zinc-500 hover:text-white font-black text-xs">
+                                                <MessageSquare size={18} /> Discuss
+                                            </button> */}
                                         </div>
                                     </>
                                 )}
@@ -249,12 +243,6 @@ function Community() {
                         </div>
                     </div>
                 ))}
-                
-                {tweets.length === 0 && (
-                    <div className="text-center py-40">
-                        <p className="text-zinc-700 font-black uppercase tracking-[0.5em] italic">Feed Empty</p>
-                    </div>
-                )}
             </div>
         </div>
     );
