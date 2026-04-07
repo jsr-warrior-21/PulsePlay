@@ -124,10 +124,8 @@ function PlaylistVideos() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                     {playlist?.videos?.filter(v => v !== null).map(v => (
                         <div key={v._id} className="relative group">
-                            {/* 🔥 FIXED PROP PASSING HERE */}
                             <VideoCard video={v} />
                             
-                            {/* Remove Video Button Overlay */}
                             <button 
                                 onClick={() => handleRemoveVideo(v._id)}
                                 className="absolute top-2 right-2 bg-black/90 hover:bg-red-600 text-white w-8 h-8 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-2xl border border-white/10 z-10"

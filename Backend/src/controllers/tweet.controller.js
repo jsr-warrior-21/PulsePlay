@@ -5,6 +5,7 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiResponse } from '../utils/apiResponse.js'
 import { uploadOnCloudinary } from '../utils/cloudinary.js'
 import { v2 as cloudinary } from "cloudinary" 
+import { likeModel as Like } from "../models/like.model.js";
 
 const createTweet = asyncHandler(async (req, res) => {
     const { content } = req.body
@@ -35,13 +36,59 @@ const createTweet = asyncHandler(async (req, res) => {
 
 const getUserTweets = asyncHandler(async (req, res) => {
     const { userId } = req.params
+    const loggedInUserId = req.user?._id;
+
     if (!isValidObjectId(userId)) {
         throw new ApiError(400, "Invalid User ID")
     }
 
-    const tweets = await Tweet.find({ owner: userId })
-        .populate("owner", "username avatar fullName")
-        .sort({ createdAt: -1 })
+    const tweets = await Tweet.aggregate([
+        {
+            $match: {
+                owner: new mongoose.Types.ObjectId(userId)
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $project: {
+                            username: 1,
+                            avatar: 1,
+                            fullName: 1
+                        }
+                    }
+                ]
+            }
+        },
+        { $addFields: { owner: { $first: "$owner" } } },
+        {
+            $lookup: {
+                from: "likemodels", 
+                localField: "_id",
+                foreignField: "tweet",
+                as: "likes"
+            }
+        },
+        {
+            $addFields: {
+                likesCount: { $size: "$likes" },
+                isLiked: {
+                    $cond: {
+                        if: { $in: [loggedInUserId, "$likes.likedBy"] },
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        { $sort: { createdAt: -1 } },
+        { $project: { likes: 0 } } // Removing the likes array to keep response clean
+    ]);
 
     return res
         .status(200)
@@ -78,7 +125,6 @@ const updateTweet = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, updatedTweet, "Tweet updated successfully"))
 })
 
-// 🔥 Naya Function: Sirf Image Delete karne ke liye
 const deleteTweetImage = asyncHandler(async (req, res) => {
     const { tweetId } = req.params
 
@@ -89,7 +135,6 @@ const deleteTweetImage = asyncHandler(async (req, res) => {
     const tweet = await Tweet.findById(tweetId)
     if (!tweet) throw new ApiError(404, "Tweet not found")
 
-    // Authorization Check
     if (tweet.owner.toString() !== req.user?._id.toString()) {
         throw new ApiError(403, "Unauthorized request")
     }
@@ -98,7 +143,6 @@ const deleteTweetImage = asyncHandler(async (req, res) => {
         throw new ApiError(400, "No image found in this tweet")
     }
 
-    // 1. Delete from Cloudinary
     try {
         const publicId = tweet.image.split("/").pop().split(".")[0];
         await cloudinary.uploader.destroy(publicId);
@@ -106,7 +150,6 @@ const deleteTweetImage = asyncHandler(async (req, res) => {
         console.error("Cloudinary delete error:", error);
     }
 
-    // 2. Clear image field in Database
     tweet.image = "";
     await tweet.save({ validateBeforeSave: false });
 
@@ -136,7 +179,7 @@ const deleteTweet = asyncHandler(async (req, res) => {
             console.error("Cloudinary delete error:", error);
         }
     }
-
+    await Like.deleteMany({ tweet: tweetId });
     await Tweet.findByIdAndDelete(tweetId)
 
     return res

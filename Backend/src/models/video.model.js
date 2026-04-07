@@ -33,12 +33,18 @@ const videoSchema = new mongoose.Schema(
     owner:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"User"
+    },
+    viewedBy: [
+    {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
     }
+],
   },
   { timestamps: true }
 );
 
-videoSchema.plugin(mongooseAggregatePaginate); // for tracking the watch history complex but good for knowladge.
+videoSchema.plugin(mongooseAggregatePaginate);  
 videoSchema.index({ title: "text", description: "text" });
 const Video = mongoose.model("Video", videoSchema);
 export { Video };

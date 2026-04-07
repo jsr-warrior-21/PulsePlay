@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { isValidObjectId } from "mongoose";
 import { likeModel as Like } from "../models/like.model.js";
 import { Notification } from "../models/notification.model.js";
 import { Video } from "../models/video.model.js";
@@ -22,31 +22,31 @@ const createLikeNotification = async ({ userId, targetUserId, type, videoId, com
 
 // Toggle video like
 const toggleVideoLike = asyncHandler(async (req, res) => {
-  const { videoId } = req.params;
-  const userId = req.user._id;
+    const { videoId } = req.params;
+    if (!isValidObjectId(videoId)) throw new ApiError(400, "Invalid Video ID");
 
-  if (!mongoose.isValidObjectId(videoId)) throw new ApiError(400, "Invalid video ID");
+    const video = await Video.findById(videoId);
+    if (!video) throw new ApiError(404, "Video not found");
 
-  const existing = await Like.findOne({ video: videoId, likedBy: userId });
+    const alreadyLiked = await Like.findOne({ video: videoId, likedBy: req.user?._id });
 
-  if (existing) {
-    await existing.deleteOne();
-    return res.status(200).json(new ApiResponse(200, { isLiked: false }, "Video unliked successfully"));
-  }
+    if (alreadyLiked) {
+        await Like.findByIdAndDelete(alreadyLiked._id);
+        return res.status(200).json(new ApiResponse(200, { isLiked: false }, "Unliked"));
+    } else {
+        await Like.create({ video: videoId, likedBy: req.user?._id });
 
-  const like = await Like.create({ video: videoId, likedBy: userId });
+        if (video.owner.toString() !== req.user?._id.toString()) {
+            await Notification.create({
+                user: video.owner, // Recipient
+                fromUser: req.user?._id, // Sender
+                type: "video_like",
+                video: videoId,
+            });
+        }
 
-  const video = await Video.findById(videoId);
-  if (video) {
-    await createLikeNotification({
-      userId,
-      targetUserId: video.owner,
-      type: "video_like",
-      videoId,
-    });
-  }
-
-  return res.status(200).json(new ApiResponse(200, { isLiked: true }, "Video liked successfully"));
+        return res.status(200).json(new ApiResponse(200, { isLiked: true }, "Liked"));
+    }
 });
 
 // Toggle comment like

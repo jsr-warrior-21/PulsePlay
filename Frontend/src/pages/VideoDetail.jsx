@@ -23,7 +23,6 @@ function VideoDetail() {
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingText, setEditingText] = useState("");
 
-  // 🔥 URL Fixer: Cloudinary videos often need '/video/' instead of '/image/'
   const fixVideoUrl = (url) => {
     if (!url) return "";
     let secureUrl = getSecureUrl(url);
@@ -128,7 +127,6 @@ function VideoDetail() {
       <div className="max-w-[1550px] mx-auto flex flex-col lg:flex-row gap-6 p-4">
         
         <div className="flex-1 lg:max-w-[calc(100%-400px)]">
-          {/* ✅ NATIVE VIDEO TAG (Like your old working code) */}
           <div className="aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-white/5">
             <video 
               key={videoId} // Re-mount when video changes

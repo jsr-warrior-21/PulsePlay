@@ -92,7 +92,6 @@ function Playlists() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-20">
                 {playlists.length > 0 ? playlists.map(p => {
-                    {/* 🔥 YAHAN FILTER LOGIC: Sirf un videos ko count karo jo null nahi hain */}
                     const validVideosCount = p.videos?.filter(v => v !== null).length || 0;
 
                     return (

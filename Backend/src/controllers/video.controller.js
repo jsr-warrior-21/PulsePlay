@@ -5,43 +5,35 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiResponse } from '../utils/apiResponse.js'
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 
+// 1. Get all videos with optimized search and filters
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
     
     const pipeline = []
 
-    // 1. Filter by userId (Specific channel videos)
+    // Match Stage for search and filters
+    const matchStage = { isPublished: true };
+
     if (userId) {
         if (!isValidObjectId(userId)) throw new ApiError(400, "Invalid User ID")
-        pipeline.push({
-            $match: { 
-                owner: new mongoose.Types.ObjectId(userId) 
-            }
-        })
+        matchStage.owner = new mongoose.Types.ObjectId(userId)
     }
 
     if (query) {
-        pipeline.push({
-            $match: {
-                $or: [
-                    { title: { $regex: query, $options: "i" } },
-                    { description: { $regex: query, $options: "i" } }
-                ]
-            }
-        })
+        matchStage.$or = [
+            { title: { $regex: query.trim(), $options: "i" } },
+            { description: { $regex: query.trim(), $options: "i" } }
+        ]
     }
 
-    // 3. Only show published videos
-    pipeline.push({
-        $match: { isPublished: true }
-    })
+    pipeline.push({ $match: matchStage })
 
-    // 4. Sorting logic
+    // Sorting logic
     const sortField = sortBy || "createdAt"
     const sortOrder = sortType === "asc" ? 1 : -1
     pipeline.push({ $sort: { [sortField]: sortOrder } })
 
-    // 5. Lookup Owner Details
+    // Lookup Owner Details
     pipeline.push(
         {
             $lookup: {
@@ -81,6 +73,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, videos, "Videos fetched successfully"))
 })
 
+// 2. Publish a video
 const publishAVideo = asyncHandler(async (req, res) => {
     const { title, description } = req.body
 
@@ -114,11 +107,31 @@ const publishAVideo = asyncHandler(async (req, res) => {
         .json(new ApiResponse(201, video, "Video published successfully"))
 })
 
+// 3. Get Video By ID with SMART UNIQUE VIEWS logic
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
     if (!isValidObjectId(videoId)) throw new ApiError(400, "Invalid Video ID");
 
     const userId = req.user?._id ? new mongoose.Types.ObjectId(req.user._id) : null;
+
+    const videoData = await Video.findById(videoId);
+    if (!videoData) throw new ApiError(404, "Video not found");
+
+    if (userId) {
+        const isOwner = videoData.owner.toString() === userId.toString();
+        // Check if user ID is NOT in the viewedBy array
+        const hasNotViewed = !videoData.viewedBy.includes(userId);
+
+        if (!isOwner && hasNotViewed) {
+            await Video.findByIdAndUpdate(videoId, { 
+                $addToSet: { viewedBy: userId },  
+                $inc: { views: 1 }                
+            });
+        }
+    } else {
+       
+    }
+    // ------------------------------------
 
     const video = await Video.aggregate([
         { $match: { _id: new mongoose.Types.ObjectId(videoId) } },
@@ -176,13 +189,11 @@ const getVideoById = asyncHandler(async (req, res) => {
     ]);
 
     if (!video?.length) throw new ApiError(404, "Video not found");
-    
-    // Views increment
-    await Video.findByIdAndUpdate(videoId, { $inc: { views: 1 } });
 
     return res.status(200).json(new ApiResponse(200, video[0], "Success"));
 });
 
+// 4. Update video
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     const { title, description } = req.body
@@ -219,6 +230,7 @@ const updateVideo = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, updatedVideo, "Video updated successfully"))
 })
 
+// 5. Delete video
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
 
@@ -238,6 +250,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, "Video deleted successfully"))
 })
 
+// 6. Toggle Publish Status
 const togglePublishStatus = asyncHandler(async (req, res) => {
     const { videoId } = req.params
 
@@ -255,13 +268,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
-        .json(
-            new ApiResponse(
-                200,
-                { isPublished: video.isPublished },
-                "Publish status toggled"
-            )
-        )
+        .json(new ApiResponse(200, { isPublished: video.isPublished }, "Publish status toggled"))
 })
 
 export {

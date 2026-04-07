@@ -6,35 +6,32 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 
 const toggleSubscription = asyncHandler(async (req, res) => {
-  const { channelId } = req.params;
-  const userId = req.user._id;
+    const { channelId } = req.params;
+    if (!isValidObjectId(channelId)) throw new ApiError(400, "Invalid Channel ID");
 
-  if (!isValidObjectId(channelId)) throw new ApiError(400, "Invalid Channel ID");
-  if (channelId === userId.toString())
-    throw new ApiError(400, "Cannot subscribe to your own channel");
+    const subscription = await Subscription.findOne({
+        subscriber: req.user?._id,
+        channel: channelId,
+    });
 
-  const credentials = { subscriber: userId, channel: channelId };
-  const subscribedAlready = await Subscription.findOne(credentials);
+    if (subscription) {
+        await Subscription.findByIdAndDelete(subscription._id);
+        return res.status(200).json(new ApiResponse(200, { subscribed: false }, "Unsubscribed"));
+    } else {
+        await Subscription.create({
+            subscriber: req.user?._id,
+            channel: channelId,
+        });
 
-  if (subscribedAlready) {
-    await Subscription.deleteOne(credentials);
-    return res
-      .status(200)
-      .json(new ApiResponse(200, { isSubscribed: false }, "Unsubscribed successfully"));
-  }
+        // 🔥 Notification Trigger
+        await Notification.create({
+            user: channelId,  
+            fromUser: req.user?._id,
+            type: "subscription",
+        });
 
-  await Subscription.create(credentials);
-
-  // Notification for channel owner
-  await Notification.create({
-    user: channelId,
-    fromUser: userId,
-    type: "subscription",
-  });
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, { isSubscribed: true }, "Subscribed successfully"));
+        return res.status(200).json(new ApiResponse(200, { subscribed: true }, "Subscribed"));
+    }
 });
 
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {

@@ -16,10 +16,12 @@ function Community() {
     const fetchTweets = async () => {
         if (!userData?._id) return;
         try {
-            // Note: Backend controller needs to send 'isLiked' and 'likesCount' for best results
+            // Ensure this route calls the updated aggregate controller
             const res = await axiosInstance.get("/tweets/user/" + userData?._id); 
             setTweets(res.data.data || []);
-        } catch (err) { console.error("Fetch Error:", err); }
+        } catch (err) { 
+            console.error("Fetch Error:", err); 
+        }
     };
 
     const handleImageChange = (e) => {
@@ -40,61 +42,78 @@ function Community() {
             const res = await axiosInstance.post("/tweets", formData, {
                 headers: { "Content-Type": "multipart/form-data" }
             });
-            setTweets([res.data.data, ...tweets]);
+            // Add new tweet to top with default like counts
+            const newTweet = {
+                ...res.data.data,
+                likesCount: 0,
+                isLiked: false,
+                owner: userData
+            };
+            setTweets([newTweet, ...tweets]);
             setTweetContent("");
             setImageFile(null);
             setImagePreview(null);
-        } catch (err) { alert("Post failed!"); }
+        } catch (err) { 
+            alert("Failed to post the content. Please try again."); 
+        }
     };
 
-    // 🔥 Toggle Like Logic
     const handleToggleLike = async (tweetId) => {
         try {
             const res = await axiosInstance.post(`/likes/toggle/tweet/${tweetId}`);
             const isLikedNow = res.data.data.isLiked;
 
-            // UI ko bina refresh kiye update karo (Optimistic UI)
+            // Optimized UI Update
             setTweets(prev => prev.map(t => {
                 if (t._id === tweetId) {
+                    const currentCount = t.likesCount || 0;
                     return {
                         ...t,
                         isLiked: isLikedNow,
-                        likesCount: isLikedNow ? (t.likesCount || 0) + 1 : (t.likesCount || 1) - 1
+                        likesCount: isLikedNow ? currentCount + 1 : Math.max(0, currentCount - 1)
                     }
                 }
                 return t;
             }));
         } catch (err) {
-            console.error("Like error:", err);
+            console.error("Like operation failed:", err);
         }
     };
 
     const handleRemoveImage = async (id) => {
-        if (!window.confirm("Bhai, sirf photo hata du? Post rahegi.")) return;
+        if (!window.confirm("Are you sure you want to remove this photo? The post text will remain.")) return;
         try {
             await axiosInstance.patch(`/tweets/remove-image/${id}`);
             setTweets(tweets.map(t => t._id === id ? { ...t, image: "" } : t));
-        } catch (err) { alert("Photo hatane mein error aaya!"); }
+        } catch (err) { 
+            alert("Error removing the image."); 
+        }
     };
 
     const handleDeleteTweet = async (id) => {
-        if (!window.confirm("Bhai, poori post uda du?")) return;
+        if (!window.confirm("Are you sure you want to permanently delete this post?")) return;
         try {
             await axiosInstance.delete(`/tweets/${id}`);
             setTweets(tweets.filter(t => t._id !== id));
-        } catch (err) { alert("Delete failed"); }
+        } catch (err) { 
+            alert("Failed to delete the post."); 
+        }
     };
 
     const handleUpdateTweet = async (id) => {
         if (!editContent.trim()) return;
         try {
-            const res = await axiosInstance.patch(`/tweets/${id}`, { content: editContent });
+            await axiosInstance.patch(`/tweets/${id}`, { content: editContent });
             setTweets(tweets.map(t => t._id === id ? { ...t, content: editContent } : t));
             setEditingId(null);
-        } catch (err) { alert("Update failed"); }
+        } catch (err) { 
+            alert("Failed to update the post."); 
+        }
     };
 
-    useEffect(() => { if(userData) fetchTweets(); }, [userData]);
+    useEffect(() => { 
+        if(userData) fetchTweets(); 
+    }, [userData]);
 
     return (
         <div className="max-w-3xl mx-auto p-4 text-left min-h-screen text-white">
@@ -104,7 +123,7 @@ function Community() {
             <div className="bg-[#1a1a1a] p-6 rounded-[2.5rem] border border-gray-800 mb-10 shadow-2xl">
                 <textarea 
                     className="w-full bg-transparent text-lg outline-none border-none resize-none h-20 placeholder:text-gray-600"
-                    placeholder="What's happening?"
+                    placeholder="Share your thoughts with the community..."
                     value={tweetContent}
                     onChange={(e) => setTweetContent(e.target.value)}
                 />
@@ -131,7 +150,7 @@ function Community() {
                 {tweets.map(t => (
                     <div key={t._id} className="bg-[#1a1a1a] p-6 rounded-[2.5rem] border border-gray-800 group relative shadow-xl hover:border-gray-700 transition-all">
                         <div className="flex gap-5">
-                            <img src={getSecureUrl(t.owner?.avatar || userData?.avatar)} className="w-14 h-14 rounded-full object-cover border-2 border-gray-900 shadow-md" alt="avatar" />
+                            <img src={getSecureUrl(t.owner?.avatar || userData?.avatar)} className="w-14 h-14 rounded-full object-cover border-2 border-gray-900 shadow-md" alt="user avatar" />
                             <div className="flex-1">
                                 <div className="flex justify-between items-center mb-2">
                                     <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">
@@ -161,7 +180,7 @@ function Community() {
                                         {t.image && (
                                             <div className="mt-4 bg-[#0c0c0c] rounded-[2rem] border border-gray-800/50 p-4 group/img relative shadow-inner">
                                                 <div className="overflow-hidden rounded-2xl">
-                                                    <img src={getSecureUrl(t.image)} className="w-full max-h-[400px] object-contain mx-auto block transition-transform duration-700 hover:scale-[1.03]" alt="post" />
+                                                    <img src={getSecureUrl(t.image)} className="w-full max-h-[400px] object-contain mx-auto block transition-transform duration-700 hover:scale-[1.03]" alt="post content" />
                                                 </div>
                                                 {userData?._id === (t.owner?._id || t.owner) && (
                                                     <button onClick={() => handleRemoveImage(t._id)} className="absolute top-6 right-6 bg-red-600/90 hover:bg-red-600 text-[8px] font-black uppercase tracking-widest px-4 py-2 rounded-full opacity-0 group-hover/img:opacity-100 transition-all shadow-2xl backdrop-blur-md border border-white/10">Remove Photo</button>
@@ -169,7 +188,6 @@ function Community() {
                                             </div>
                                         )}
 
-                                        {/* 🔥 Interactive Like Button Section */}
                                         <div className="flex items-center gap-6 mt-6 pt-4 border-t border-gray-800/30">
                                             <button 
                                                 onClick={() => handleToggleLike(t._id)}
@@ -184,8 +202,6 @@ function Community() {
                                                     {t.likesCount || 0}
                                                 </span>
                                             </button>
-                                            
-                                            {/* Future Comment/Share icons can go here */}
                                         </div>
                                     </>
                                 )}

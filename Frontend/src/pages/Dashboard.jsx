@@ -16,7 +16,7 @@ function Dashboard() {
 
     const fetchDashboardData = useCallback(() => {
         axiosInstance.get("/dashboard").then(res => {
-            console.log("Dashboard Raw Data:", res.data.data); // Debugging ke liye
+            console.log("Dashboard Raw Data:", res.data.data); 
             setData(res.data.data);
             setFormData({
                 fullName: res.data.data.stats?.fullName || userData?.fullName,
@@ -109,10 +109,6 @@ function Dashboard() {
     );
 
     const stats = data.stats || {};
-    
-    // ✅ CRITICAL FIX: Owner Object Sync
-    // Dashboard mein 'owner' aksar string ID aati hai, VideoCard ko object chahiye.
-    // Hum owner ID ko userData object se replace kar rahe hain taaki avatar/name dikhe.
     const rawVideos = Array.isArray(data.videos) ? data.videos : (data.videos?.docs || []);
     const videosList = rawVideos.map(v => ({
         ...v,
@@ -125,7 +121,7 @@ function Dashboard() {
         <div className="flex-1 bg-[#0f0f0f] text-white overflow-y-auto no-scrollbar">
             <div className="max-w-7xl mx-auto p-4 md:p-8 text-left">
                 
-                {/* 🖼️ Cover Image */}
+                {/* Cover Image */}
                 <div className="relative group h-40 md:h-52 w-full bg-zinc-900 rounded-3xl overflow-hidden mb-12 shadow-2xl border border-zinc-800">
                     <img 
                         src={getSecureUrl(userData?.coverImage)} 
@@ -138,7 +134,7 @@ function Dashboard() {
                     </label>
                 </div>
 
-                {/* 👤 Profile Section */}
+                {/*  Profile Section */}
                 <div className="flex flex-col md:flex-row items-center md:items-end gap-6 px-4 -mt-20 mb-12 relative z-10">
                     <div className="relative group">
                         <img 
@@ -201,7 +197,7 @@ function Dashboard() {
                     </div>
                 </div>
 
-                {/* 📊 Stats Grid */}
+                {/*  Stats Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-14">
                     {[
                         { label: "Total Views", val: stats.totalViews, icon: "👁️" },
@@ -223,7 +219,7 @@ function Dashboard() {
                     <span className="text-xs font-bold text-zinc-500 bg-zinc-900 px-3 py-1 rounded-full border border-zinc-800">{videosList.length} Uploads</span>
                 </div>
 
-                {/* 🎬 Video Grid */}
+                {/*Video Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 pb-20">
                     {videosList.length > 0 ? (
                         videosList.map(v => (

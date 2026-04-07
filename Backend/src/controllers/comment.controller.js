@@ -64,35 +64,32 @@ const getVideoComments = asyncHandler(async (req, res) => {
 
 // 2. Add a comment with notification
 const addComment = asyncHandler(async (req, res) => {
-  const { videoId } = req.params;
-  const { content } = req.body;
+    const { videoId } = req.params;
+    const { content } = req.body;
 
-  if (!content?.trim()) throw new ApiError(400, "Comment content is required");
-  if (!isValidObjectId(videoId)) throw new ApiError(400, "Invalid Video ID");
+    if (!content) throw new ApiError(400, "Content is required");
+    if (!isValidObjectId(videoId)) throw new ApiError(400, "Invalid Video ID");
 
-  // Create the comment
-  const comment = await Comment.create({
-    content,
-    video: videoId,
-    owner: req.user._id,
-  });
+    const video = await Video.findById(videoId);
+    if (!video) throw new ApiError(404, "Video not found");
 
-  // Fetch video to get owner for notification
-  const video = await Video.findById(videoId);
-  if (video && video.owner.toString() !== req.user._id.toString()) {
-    await Notification.create({
-      user: video.owner,      // Video owner
-      fromUser: req.user._id, // Commenter
-      type: "comment",
-      comment: comment._id,
-      video: videoId,
-      isRead: false,
+    const comment = await Comment.create({
+        content,
+        video: videoId,
+        owner: req.user?._id
     });
-  }
 
-  return res
-    .status(201)
-    .json(new ApiResponse(201, comment, "Comment added successfully"));
+    if (video.owner.toString() !== req.user?._id.toString()) {
+        await Notification.create({
+            user: video.owner,
+            fromUser: req.user?._id,
+            type: "comment",
+            video: videoId,
+            comment: comment._id
+        });
+    }
+
+    return res.status(201).json(new ApiResponse(201, comment, "Comment added"));
 });
 
 // 3. Update a comment
