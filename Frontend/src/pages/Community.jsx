@@ -159,7 +159,7 @@ function Community() {
                     
                     <button 
                         onClick={handlePostTweet} 
-                        className="bg-white text-black hover:bg-blue-50 px-10 py-3.5 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl transition-all active:scale-95 flex items-center gap-2"
+                        className="bg-white text-black hover:bg-blue-50 px-5 py-3.5 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl transition-all active:scale-95 flex items-center gap-2"
                     >
                         <Send size={14} /> Post pulse
                     </button>

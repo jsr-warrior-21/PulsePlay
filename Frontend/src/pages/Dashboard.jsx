@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import axiosInstance, { getSecureUrl } from "../api/axios";
 import { useSelector } from "react-redux";
+import { Link } from "react-router-dom"; 
 import VideoCard from "../components/VideoCard";
-// Premium Icons
 import {
   Edit3,
   Camera,
@@ -16,6 +16,7 @@ import {
   Trash2,
   X,
   CheckCircle,
+  BellRing,  
 } from "lucide-react";
 
 function Dashboard() {
@@ -24,15 +25,14 @@ function Dashboard() {
   const [updating, setUpdating] = useState(false);
   const [activeSection, setActiveSection] = useState("videos");
   const [tweets, setTweets] = useState([]);
+  const [subscribedChannels, setSubscribedChannels] = useState([]); 
 
-  // Profile Edit States
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({
     fullName: userData?.fullName || "",
     email: userData?.email || "",
   });
 
-  // Password Change States
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     oldPassword: "",
@@ -42,16 +42,28 @@ function Dashboard() {
   const [editingTweetId, setEditingTweetId] = useState(null);
   const [tweetEditContent, setTweetEditContent] = useState("");
 
+  const fetchSubscriptions = useCallback(async () => {
+    try {
+      // Updated route to /u/ for subscribed channels list
+      const res = await axiosInstance.get(`/subscriptions/u/${userData?._id}`);
+      setSubscribedChannels(res.data.data || []);
+    } catch (err) {
+      console.error("Dashboard Subscription Error:", err);
+    }
+  }, [userData]);
+
   const fetchDashboardData = useCallback(async () => {
     try {
       const res = await axiosInstance.get("/dashboard");
       setData(res.data.data);
       const tweetRes = await axiosInstance.get(`/tweets/user/${userData?._id}`);
       setTweets(tweetRes.data.data || []);
+      
+      fetchSubscriptions(); 
     } catch (err) {
       console.error("Dashboard Fetch Error:", err);
     }
-  }, [userData]);
+  }, [userData, fetchSubscriptions]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -181,6 +193,19 @@ function Dashboard() {
     }
   };
 
+  const handleUnsubscribe = async (channelId) => {
+    if (!window.confirm("Unfollow this creator?")) return;
+    setUpdating(true);
+    try {
+      await axiosInstance.post(`/subscriptions/c/${channelId}`);
+      fetchSubscriptions(); 
+    } catch (err) {
+      alert("Action failed");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   if (!data)
     return (
       <div className="h-screen bg-[#050505] flex items-center justify-center text-zinc-700 font-black italic tracking-widest animate-pulse uppercase">
@@ -201,7 +226,7 @@ function Dashboard() {
     <div className="flex-1 bg-[#050505] text-white overflow-y-auto no-scrollbar min-h-screen">
       <div className="max-w-7xl mx-auto p-4 md:p-8 text-left">
         
-        {/* Cover Section - Fixed Camera Icon & Interaction */}
+        {/* Cover Section */}
         <div className="relative group h-40 md:h-60 w-full bg-zinc-900 rounded-[2.5rem] overflow-hidden mb-12 border border-white/5 shadow-2xl">
           <img
             src={getSecureUrl(userData?.coverImage)}
@@ -222,7 +247,7 @@ function Dashboard() {
           <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
         </div>
 
-        {/* Profile Header - NO UPPERCASE */}
+        {/* Profile Header */}
         <div className="flex flex-col md:flex-row items-center md:items-end gap-6 px-4 -mt-20 md:-mt-28 mb-12 relative z-10">
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-500"></div>
@@ -245,7 +270,6 @@ function Dashboard() {
           <div className="mb-2 text-center md:text-left flex-1 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
               <div className="flex items-center justify-center md:justify-start gap-2 mb-1">
-                {/* Fixed: Removed Uppercase */}
                 <h1 className="text-3xl md:text-5xl font-black tracking-tighter leading-tight italic">
                   {userData?.fullName}
                 </h1>
@@ -256,7 +280,6 @@ function Dashboard() {
                 />
               </div>
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-3">
-                {/* Fixed: Removed Uppercase */}
                 <p className="text-blue-500 font-bold text-sm tracking-tight">
                   @{userData?.username}
                 </p>
@@ -328,7 +351,7 @@ function Dashboard() {
           ))}
         </div>
 
-        {/* Tabs */}
+        {/* Tabs - Added Subscriptions */}
         <div className="flex gap-10 mb-10 border-b border-white/5 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveSection("videos")}
@@ -341,6 +364,12 @@ function Dashboard() {
             className={`pb-4 text-[11px] font-black uppercase tracking-widest transition-all shrink-0 ${activeSection === "tweets" ? "text-blue-500 border-b-2 border-blue-500" : "text-zinc-500 hover:text-zinc-300"}`}
           >
             Manage Posts
+          </button>
+          <button
+            onClick={() => setActiveSection("subscriptions")}
+            className={`pb-4 text-[11px] font-black uppercase tracking-widest transition-all shrink-0 ${activeSection === "subscriptions" ? "text-blue-500 border-b-2 border-blue-500" : "text-zinc-500 hover:text-zinc-300"}`}
+          >
+            Manage Subscriptions
           </button>
         </div>
 
@@ -372,7 +401,7 @@ function Dashboard() {
               </div>
             ))}
           </div>
-        ) : (
+        ) : activeSection === "tweets" ? (
           <div className="max-w-4xl space-y-6 pb-32">
             {tweets.length > 0 ? (
               tweets.map((t) => (
@@ -441,10 +470,54 @@ function Dashboard() {
               </div>
             )}
           </div>
+        ) : (
+          /* SUBSCRIPTION TAB CONTENT */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-32">
+            {subscribedChannels.length > 0 ? (
+              subscribedChannels.map((sub) => (
+                <div 
+                  key={sub._id} 
+                  className="bg-zinc-900/40 backdrop-blur-md p-5 rounded-[2.5rem] border border-white/5 hover:border-blue-500/20 transition-all flex items-center justify-between group"
+                >
+                  <Link 
+                    to={`/channel/${sub.username}`} 
+                    className="flex items-center gap-4 flex-1 overflow-hidden"
+                  >
+                    <img 
+                      src={getSecureUrl(sub.avatar)} 
+                      className="w-14 h-14 rounded-2xl object-cover border border-white/10 group-hover:scale-105 transition-transform" 
+                      alt="avatar" 
+                    />
+                    <div className="overflow-hidden">
+                      <h4 className="text-white font-black italic tracking-tighter truncate text-left">
+                        {sub.fullName}
+                      </h4>
+                      <p className="text-blue-500 text-[10px] font-bold text-left">
+                        @{sub.username}
+                      </p>
+                    </div>
+                  </Link>
+                  <button 
+                    onClick={() => handleUnsubscribe(sub._id)}
+                    className="p-3 bg-white/5 hover:bg-red-600/10 text-zinc-500 hover:text-red-500 rounded-2xl transition-all"
+                    title="Unfollow"
+                  >
+                    <BellRing size={18} />
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className="col-span-full py-20 text-center border-2 border-dashed border-white/5 rounded-[3rem]">
+                <p className="text-zinc-600 font-black uppercase tracking-[0.3em] text-xs">
+                  No Subscriptions Yet
+                </p>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Modals same as before... */}
+      {/* Identity Setting Modal */}
       {isEditingProfile && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center z-[150] p-4">
           <div className="bg-[#0f0f0f] border border-white/10 p-8 md:p-10 rounded-[3rem] w-full max-w-md shadow-[0_0_50px_rgba(0,0,0,0.5)]">
@@ -460,7 +533,7 @@ function Dashboard() {
               </button>
             </div>
             <form onSubmit={handleUpdateProfile} className="space-y-6">
-              <div className="space-y-2">
+              <div className="space-y-2 text-left">
                 <label className="text-[10px] font-black uppercase text-zinc-500 ml-2">
                   Public Name
                 </label>
@@ -482,7 +555,7 @@ function Dashboard() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 text-left">
                 <label className="text-[10px] font-black uppercase text-zinc-500 ml-2">
                   Email Address
                 </label>
@@ -512,6 +585,7 @@ function Dashboard() {
         </div>
       )}
 
+      {/* Password Change Modal */}
       {isChangingPassword && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center z-[160] p-4">
           <div className="bg-[#0f0f0f] border border-white/10 p-8 md:p-10 rounded-[3rem] w-full max-w-md shadow-[0_0_50px_rgba(0,0,0,0.5)]">
@@ -575,6 +649,7 @@ function Dashboard() {
         </div>
       )}
 
+      {/* Updating Overlay */}
       {updating && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[200]">
           <div className="flex flex-col items-center gap-4">

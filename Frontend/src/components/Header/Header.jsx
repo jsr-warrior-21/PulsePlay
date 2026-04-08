@@ -173,7 +173,6 @@ function Header() {
               <LogoutBtn />
             </div>
           ) : (
-            /* 🔥 LOGOUT VIEW: Buttons Re-added Perfectly */
             <div className="flex items-center gap-3 md:gap-5">
               <Link to="/login" className="text-[11px] font-black uppercase tracking-widest text-zinc-400 hover:text-white transition-colors">
                 Login
