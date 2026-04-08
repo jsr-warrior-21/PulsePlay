@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import axiosInstance, { getSecureUrl } from '../api/axios'
 import VideoCard from '../components/VideoCard'
+import toast from 'react-hot-toast' 
 
 function ChannelProfile() {
     const { username } = useParams()
@@ -11,20 +12,27 @@ function ChannelProfile() {
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState("videos")  
 
-    // 🔥 Naya Subscribe Handle Function
     const handleSubscribe = async () => {
         try {
             await axiosInstance.post(`/subscriptions/c/${channel._id}`);
             
+            const currentlySubscribed = channel.isSubscribed;
+
             // Optimistic UI Update: Turant button aur count 
             setChannel(prev => ({
                 ...prev,
                 isSubscribed: !prev.isSubscribed,
                 subscriberCount: prev.isSubscribed ? prev.subscriberCount - 1 : prev.subscriberCount + 1
             }));
+
+            if (!currentlySubscribed) {
+                toast.success(`Subscribed to ${channel.fullName}! 🔔`);
+            } else {
+                toast.success("Unsubscribed from channel");
+            }
         } catch (err) {
             console.error("Subscription Error:", err);
-            alert("Action failed. Try again.");
+            toast.error("Action failed. Try again.");  
         }
     };
 
@@ -74,7 +82,7 @@ function ChannelProfile() {
     if (loading || !channel) return <div className="p-20 text-center animate-pulse text-zinc-500 font-black uppercase italic tracking-widest">Loading Channel Profile...</div>
 
     return (
-        <div className="min-h-screen bg-[#0f0f0f] text-white">
+        <div className="min-h-screen bg-[#0f0f0f] text-white selection:bg-blue-500/30">
             <div className="h-40 md:h-64 bg-zinc-900 w-full overflow-hidden border-b border-zinc-800">
                 {channel.coverImage ? (
                     <img src={getSecureUrl(channel.coverImage)} className="w-full h-full object-cover" alt="cover" />
@@ -84,7 +92,7 @@ function ChannelProfile() {
             </div>
 
             <div className="max-w-6xl mx-auto px-4 py-8 flex flex-col md:flex-row items-center gap-8 text-left">
-                <img src={getSecureUrl(channel.avatar)} className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-black object-cover shadow-2xl" />
+                <img src={getSecureUrl(channel.avatar)} className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-black object-cover shadow-2xl" alt="avatar" />
                 <div className="flex-1">
                     <h1 className="text-4xl font-black tracking-tighter italic">{channel.fullName}</h1>
                     <p className="text-zinc-500 font-bold mt-1 text-lg">@{channel.username}</p>
@@ -94,10 +102,9 @@ function ChannelProfile() {
                         <span>{videos.length} Videos</span>
                     </div>
                     
-                    {/*  Updated Button with onClick */}
                     <button 
                         onClick={handleSubscribe}
-                        className={`mt-6 px-10 py-2.5 rounded-full font-black text-xs uppercase tracking-widest transition-all shadow-lg ${
+                        className={`mt-6 px-10 py-2.5 rounded-full font-black text-xs uppercase tracking-widest transition-all shadow-xl active:scale-95 ${
                         channel.isSubscribed ? "bg-zinc-800 text-zinc-400" : "bg-white text-black hover:bg-zinc-200"
                     }`}>
                         {channel.isSubscribed ? "Subscribed" : "Subscribe"}
@@ -136,7 +143,7 @@ function ChannelProfile() {
                         {tweets.length > 0 ? tweets.map(t => (
                             <div key={t._id} className="bg-[#1a1a1a] p-6 rounded-[2.5rem] border border-zinc-800 shadow-xl">
                                 <div className="flex gap-4">
-                                    <img src={getSecureUrl(channel.avatar)} className="w-12 h-12 rounded-full object-cover border-2 border-zinc-900" alt="" />
+                                    <img src={getSecureUrl(channel.avatar)} className="w-12 h-12 rounded-full object-cover border-2 border-zinc-900" alt="channel avatar" />
                                     <div className="flex-1">
                                         <div className="flex justify-between items-center mb-1">
                                             <span className="text-xs font-black uppercase tracking-tighter text-zinc-300">{channel.fullName}</span>
@@ -176,4 +183,4 @@ function ChannelProfile() {
     )
 }
 
-export default ChannelProfile
+export default ChannelProfile;

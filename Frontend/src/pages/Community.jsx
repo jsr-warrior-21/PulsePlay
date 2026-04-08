@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axiosInstance, { getSecureUrl } from '../api/axios';
 import { useSelector } from 'react-redux';
 import { ImageIcon, Send, Heart, Trash2, Edit3, X, MessageSquare, Share2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import toast from 'react-hot-toast'; // 🔥 Added Toast
 
 function Community() {
     const [tweetContent, setTweetContent] = useState("");
@@ -34,7 +35,12 @@ function Community() {
     };
 
     const handlePostTweet = async () => {
-        if (!tweetContent.trim() && !imageFile) return;
+        if (!tweetContent.trim() && !imageFile) {
+            return toast.error("Please add some content or an image!"); 
+        }
+
+        const loadingToast = toast.loading("Sharing pulse to community..."); 
+        
         const formData = new FormData();
         formData.append("content", tweetContent);
         if (imageFile) formData.append("image", imageFile);
@@ -53,8 +59,9 @@ function Community() {
             setTweetContent("");
             setImageFile(null);
             setImagePreview(null);
+            toast.success("Pulse Shared! ", { id: loadingToast });  
         } catch (err) { 
-            alert("Failed to post the content."); 
+            toast.error("Failed to post the content.", { id: loadingToast });  
         }
     };
 
@@ -84,8 +91,9 @@ function Community() {
         try {
             await axiosInstance.patch(`/tweets/remove-image/${id}`);
             setTweets(tweets.map(t => t._id === id ? { ...t, image: "" } : t));
+            toast.success("Media removed successfully."); 
         } catch (err) { 
-            alert("Error removing the image."); 
+            toast.error("Error removing the image.");  
         }
     };
 
@@ -94,8 +102,9 @@ function Community() {
         try {
             await axiosInstance.delete(`/tweets/${id}`);
             setTweets(tweets.filter(t => t._id !== id));
+            toast.success("Pulse deleted."); 
         } catch (err) { 
-            alert("Failed to delete."); 
+            toast.error("Failed to delete pulse."); 
         }
     };
 
@@ -105,8 +114,9 @@ function Community() {
             await axiosInstance.patch(`/tweets/${id}`, { content: editContent });
             setTweets(tweets.map(t => t._id === id ? { ...t, content: editContent } : t));
             setEditingId(null);
+            toast.success("Pulse updated! ✨"); 
         } catch (err) { 
-            alert("Failed to update."); 
+            toast.error("Failed to update.");  
         }
     };
 
@@ -233,9 +243,6 @@ function Community() {
                                                 <Heart size={18} fill={t.isLiked ? "currentColor" : "none"} className="transition-transform group-active:scale-125" />
                                                 {t.likesCount || 0}
                                             </button>
-                                            {/* <button className="flex items-center gap-2 text-zinc-500 hover:text-white font-black text-xs">
-                                                <MessageSquare size={18} /> Discuss
-                                            </button> */}
                                         </div>
                                     </>
                                 )}

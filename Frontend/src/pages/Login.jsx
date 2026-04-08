@@ -4,6 +4,7 @@ import { login as authLogin } from '../store/authSlice'
 import axiosInstance from '../api/axios'
 import { useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react'
+import toast from 'react-hot-toast' 
 
 function Login() {
     const [formData, setFormData] = useState({ email: "", password: "" })
@@ -20,10 +21,13 @@ function Login() {
             const res = await axiosInstance.post("/users/login", formData)
             if (res.data.success) {
                 dispatch(authLogin(res.data.data.user))
+                toast.success(`Welcome back, ${res.data.data.user.username}! `)  
                 navigate("/")
             }
         } catch (err) {
-            setError(err.response?.data?.message || "Login failed. check your credentials.")
+            const errorMsg = err.response?.data?.message || "Login failed. check your credentials."
+            setError(errorMsg)
+            toast.error(errorMsg)  
         } finally {
             setLoading(false)
         }
@@ -36,7 +40,6 @@ function Login() {
                 {/* Background Glow */}
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-600/10 blur-[80px] rounded-full"></div>
                 
-                {/* 🔥 Logo Area - Redesigned to match Header */}
                 <div className="flex flex-col items-center mb-10 text-center relative z-10">
                     <div className='relative w-16 h-16 flex items-center justify-center mb-4'>
                         {/* Background Soft Glow */}

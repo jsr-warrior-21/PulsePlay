@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux'
 import axiosInstance from '../api/axios'
 import { useNavigate, Link } from 'react-router-dom'
 import { User, Mail, Lock, Camera, ArrowRight, AlertCircle, Loader2 } from 'lucide-react'
+import toast from 'react-hot-toast'  
 
 function Signup() {
     const [formData, setFormData] = useState({
@@ -20,7 +21,12 @@ function Signup() {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        if (!avatar) return setError("Profile picture is required!")
+        if (!avatar) {
+            const msg = "Profile picture is required!"
+            setError(msg)
+            toast.error(msg)  
+            return
+        }
         
         setLoading(true)
         setError("")
@@ -36,11 +42,13 @@ function Signup() {
         try {
             const res = await axiosInstance.post("/users/register", data)
             if (res.data.success) {
-                alert("Welcome to the Pulse! Now login to continue.")
+                toast.success("Welcome to the Pulse! Please login.")  
                 navigate("/login")
             }
         } catch (err) {
-            setError(err.response?.data?.message || "Registration failed. Try again.")
+            const errMsg = err.response?.data?.message || "Registration failed. Try again."
+            setError(errMsg)
+            toast.error(errMsg)  
         } finally {
             setLoading(false)
         }

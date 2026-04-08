@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import axiosInstance from '../api/axios'
 import { Trash2, X, Clock, PlayCircle, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import toast from 'react-hot-toast' 
 
 function History() {
     const [history, setHistory] = useState([])
@@ -20,11 +21,14 @@ function History() {
 
     const handleClearHistory = async () => {
         if (!window.confirm("Clear all watch history? This cannot be undone.")) return;
+        
+        const clearToast = toast.loading("Clearing your journey...") 
         try {
             await axiosInstance.post("/users/clear-history")
             setHistory([])
+            toast.success("History Cleared! ", { id: clearToast })  
         } catch (err) {
-            alert("Failed to clear history")
+            toast.error("Failed to clear history", { id: clearToast }) 
         }
     }
 
@@ -34,8 +38,9 @@ function History() {
         try {
             await axiosInstance.delete(`/users/history/${videoId}`)
             setHistory(prev => prev.filter(v => v._id !== videoId))
+            toast.success("Removed from history")  
         } catch (err) {
-            alert("Could not remove video")
+            toast.error("Could not remove video") 
         }
     }
 
@@ -94,7 +99,6 @@ function History() {
                                 <img src={v.thumbnail} className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-700' alt={v.title} />
                                 <div className='absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors'></div>
                                 <div className='absolute bottom-3 right-3 bg-black/80 px-2 py-1 rounded-lg text-[10px] font-black tracking-widest'>
-                                    {/* Video duration agar ho toh */}
                                     WATCHED
                                 </div>
                             </div>

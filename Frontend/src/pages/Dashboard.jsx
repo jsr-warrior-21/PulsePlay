@@ -3,6 +3,8 @@ import axiosInstance, { getSecureUrl } from "../api/axios";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom"; 
 import VideoCard from "../components/VideoCard";
+import toast from "react-hot-toast"; 
+// Premium Icons
 import {
   Edit3,
   Camera,
@@ -27,12 +29,14 @@ function Dashboard() {
   const [tweets, setTweets] = useState([]);
   const [subscribedChannels, setSubscribedChannels] = useState([]); 
 
+  // Profile Edit States
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({
     fullName: userData?.fullName || "",
     email: userData?.email || "",
   });
 
+  // Password Change States
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     oldPassword: "",
@@ -74,10 +78,10 @@ function Dashboard() {
     setUpdating(true);
     try {
       await axiosInstance.patch("/users/update-account", profileForm);
-      alert("Account details updated!");
+      toast.success("Account details updated!");  
       window.location.reload();
     } catch (err) {
-      alert(err.response?.data?.message || "Update failed");
+      toast.error(err.response?.data?.message || "Update failed");  
     } finally {
       setUpdating(false);
       setIsEditingProfile(false);
@@ -89,11 +93,11 @@ function Dashboard() {
     setUpdating(true);
     try {
       await axiosInstance.post("/users/change-password", passwordForm);
-      alert("Password changed successfully!");
+      toast.success("Password changed successfully!");  
       setIsChangingPassword(false);
       setPasswordForm({ oldPassword: "", newPassword: "" });
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to change password");
+      toast.error(err.response?.data?.message || "Failed to change password");  
     } finally {
       setUpdating(false);
     }
@@ -104,9 +108,10 @@ function Dashboard() {
     setUpdating(true);
     try {
       await axiosInstance.delete(`/videos/${videoId}`);
+      toast.success("Video deleted successfully!"); 
       fetchDashboardData();
     } catch (err) {
-      alert("Delete failed");
+      toast.error("Delete failed");  
     } finally {
       setUpdating(false);
     }
@@ -122,9 +127,10 @@ function Dashboard() {
         title: newTitle,
         description: oldDesc,
       });
+      toast.success("Video updated!");  
       fetchDashboardData();
     } catch (err) {
-      alert("Update failed");
+      toast.error("Update failed"); 
     } finally {
       setUpdating(false);
     }
@@ -135,9 +141,10 @@ function Dashboard() {
     setUpdating(true);
     try {
       await axiosInstance.delete(`/tweets/${tweetId}`);
+      toast.success("Post deleted!");  
       setTweets((prev) => prev.filter((t) => t._id !== tweetId));
     } catch (err) {
-      alert("Delete failed");
+      toast.error("Delete failed");  
     } finally {
       setUpdating(false);
     }
@@ -150,6 +157,7 @@ function Dashboard() {
       await axiosInstance.patch(`/tweets/${tweetId}`, {
         content: tweetEditContent,
       });
+      toast.success("Post updated!"); 
       setTweets((prev) =>
         prev.map((t) =>
           t._id === tweetId ? { ...t, content: tweetEditContent } : t,
@@ -157,7 +165,7 @@ function Dashboard() {
       );
       setEditingTweetId(null);
     } catch (err) {
-      alert("Update failed");
+      toast.error("Update failed");  
     } finally {
       setUpdating(false);
     }
@@ -171,9 +179,10 @@ function Dashboard() {
     setUpdating(true);
     try {
       await axiosInstance.patch("/users/avatar", form);
+      toast.success("Avatar updated!");  
       window.location.reload();
     } catch (err) {
-      alert("Upload failed");
+      toast.error("Upload failed");  
       setUpdating(false);
     }
   };
@@ -186,9 +195,10 @@ function Dashboard() {
     setUpdating(true);
     try {
       await axiosInstance.patch("/users/cover-image", form);
+      toast.success("Cover image updated!");  
       window.location.reload();
     } catch (err) {
-      alert("Upload failed");
+      toast.error("Upload failed");  
       setUpdating(false);
     }
   };
@@ -198,9 +208,10 @@ function Dashboard() {
     setUpdating(true);
     try {
       await axiosInstance.post(`/subscriptions/c/${channelId}`);
+      toast.success("Unsubscribed!");  
       fetchSubscriptions(); 
     } catch (err) {
-      alert("Action failed");
+      toast.error("Action failed");  
     } finally {
       setUpdating(false);
     }

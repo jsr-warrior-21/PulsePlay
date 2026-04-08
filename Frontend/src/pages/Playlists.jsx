@@ -3,6 +3,7 @@ import axiosInstance, { getSecureUrl } from '../api/axios';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Plus, FolderPlus, Play, Clock, LayoutGrid, X, Folder } from 'lucide-react';
+import toast from 'react-hot-toast';  
 
 function Playlists() {
     const [playlists, setPlaylists] = useState([]);
@@ -33,6 +34,7 @@ function Playlists() {
         if (!name.trim()) return;
         
         setLoading(true);
+        const createToast = toast.loading("Creating your collection...");  
         try {
             await axiosInstance.post("/playlists", { 
                 name, 
@@ -42,9 +44,9 @@ function Playlists() {
             setDescription("");
             setShowForm(false);
             fetchPlaylists(); 
-            alert("Playlist created successfully! 📁");
+            toast.success("Playlist created successfully! 📁", { id: createToast }); 
         } catch (err) {
-            alert("Failed to create playlist.");
+            toast.error("Failed to create playlist.", { id: createToast }); 
         } finally {
             setLoading(false);
         }
@@ -86,7 +88,7 @@ function Playlists() {
                             <input 
                                 type="text" 
                                 placeholder="e.g. Late Night Vibes" 
-                                className="w-full bg-black/40 border border-white/5 p-4 rounded-2xl outline-none focus:border-blue-500 transition-all text-sm font-medium"
+                                className="w-full bg-black/40 border border-white/5 p-4 rounded-2xl outline-none focus:border-blue-500 transition-all text-sm font-medium text-white"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 required
@@ -97,7 +99,7 @@ function Playlists() {
                             <input 
                                 type="text"
                                 placeholder="What's this about?" 
-                                className="w-full bg-black/40 border border-white/5 p-4 rounded-2xl outline-none focus:border-blue-500 transition-all text-sm font-medium"
+                                className="w-full bg-black/40 border border-white/5 p-4 rounded-2xl outline-none focus:border-blue-500 transition-all text-sm font-medium text-white"
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                             />

@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react'
 import axiosInstance from '../api/axios'
 import { useNavigate } from 'react-router-dom'
 import { Upload, Image as ImageIcon, Film, X, CheckCircle2, AlertCircle } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 function AddVideo() {
     const [loading, setLoading] = useState(false)
@@ -35,9 +36,13 @@ function AddVideo() {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        if (!videoFile || !thumbnail) return alert("Please select both video and thumbnail")
+        if (!videoFile || !thumbnail) {
+            return toast.error("Please select both video and thumbnail") 
+        }
         
         setLoading(true)
+        const uploadToast = toast.loading("Syncing Pulse to Cloud... ")  
+
         const data = new FormData()
         data.append("title", formData.title)
         data.append("description", formData.description)
@@ -46,10 +51,10 @@ function AddVideo() {
 
         try {
             await axiosInstance.post("/videos", data) 
-            alert("Pulse checking... Video published! 🚀")
+            toast.success("Pulse checking... Video published! ", { id: uploadToast })  
             navigate("/")
         } catch (error) {
-            alert("Upload failed! Check your connection.")
+            toast.error("Upload failed! Check your connection.", { id: uploadToast })  
         } finally {
             setLoading(false)
         }
@@ -63,7 +68,7 @@ function AddVideo() {
                     <Upload size={24} className="text-white" />
                 </div>
                 <div>
-                    <h1 className="text-3xl md:text-4xl font-black tracking-tighter italic italic">Upload Pulse</h1>
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tighter italic">Upload Pulse</h1>
                     <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mt-1">Share your creation with the world</p>
                 </div>
             </div>
@@ -145,7 +150,7 @@ function AddVideo() {
                         ></textarea>
                     </div>
 
-                    {/* Progress Info (Fake for now) */}
+                    {/* Progress Info */}
                     <div className="flex items-center gap-3 p-4 bg-blue-600/5 rounded-2xl border border-blue-500/10">
                         <AlertCircle size={18} className="text-blue-500 shrink-0" />
                         <p className="text-[10px] text-zinc-400 font-medium leading-relaxed">By publishing, you agree to PulsePlay's terms. Videos are processed in HD by default.</p>

@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import axiosInstance, { getSecureUrl } from "../api/axios";
 import VideoCard from "../components/VideoCard"; 
+import toast from "react-hot-toast";  
 import { ThumbsUp, Share2, PlusSquare, MoreVertical, MessageSquare, CheckCircle2, X } from "lucide-react";
 
 function VideoDetail() {
@@ -36,17 +37,20 @@ function VideoDetail() {
   const handleShare = () => {
     const videoUrl = window.location.href;
     navigator.clipboard.writeText(videoUrl)
-      .then(() => alert("Pulse link copied to clipboard"))
-      .catch(() => alert("Failed to copy link"));
+      .then(() => toast.success("Pulse link copied! 🔗"))  
+      .catch(() => toast.error("Failed to copy link"));  
   };
 
   const handleDeleteVideo = async () => {
     if (!window.confirm("Are you sure you want to delete this video?")) return;
+    const deleteToast = toast.loading("Removing pulse...");  
     try {
       await axiosInstance.delete(`/videos/${videoId}`);
-      alert("Video deleted successfully");
+      toast.success("Video deleted successfully", { id: deleteToast });  
       window.location.href = "/"; 
-    } catch (err) { alert("Delete failed"); }
+    } catch (err) { 
+      toast.error("Delete failed", { id: deleteToast });  
+    }
   };
 
   const fetchVideoData = useCallback(async () => {
@@ -85,46 +89,59 @@ function VideoDetail() {
   }, [videoId, userData, fetchVideoData, fetchComments]);
 
   const handleLike = async () => {
-    if (!userData) return alert("Login please");
+    if (!userData) return toast.error("Please login to like");  
     try {
-      await axiosInstance.post(`/likes/toggle/video/${videoId}`);
+      const res = await axiosInstance.post(`/likes/toggle/video/${videoId}`);
+      // Optimistic Update can be added, but following your logic:
       await fetchVideoData();
+      if (!isLiked) toast.success("Pulse Liked! ❤️"); 
     } catch (err) { console.error(err); }
   };
 
   const handleSubscribe = async () => {
-    if (!userData) return alert("Login required");
+    if (!userData) return toast.error("Login required to subscribe");  
     try {
       await axiosInstance.post(`/subscriptions/c/${video.owner._id}`);
       await fetchVideoData();
+      if (!isSubscribed) toast.success(`Subscribed to ${video.owner?.username}! `);  
+      else toast.success("Unsubscribed");  
     } catch (err) { console.error(err); }
   };
 
   const handleAddComment = async () => {
-    if (!commentText.trim()) return;
+    if (!userData) return toast.error("Login to comment");  
+    if (!commentText.trim()) return toast.error("Comment cannot be empty");  
+    
+    const commentToast = toast.loading("Posting comment...");
     try {
       const res = await axiosInstance.post(`/comments/${videoId}`, { content: commentText });
       const newComment = { ...res.data.data, owner: userData, likesCount: 0, isLiked: false };
       setComments(prev => [newComment, ...prev]);
       setCommentText("");
-    } catch { alert("Comment failed"); }
+      toast.success("Comment posted!", { id: commentToast });  
+    } catch { 
+      toast.error("Comment failed", { id: commentToast });  
+    }
   };
 
   const handleCommentLike = async (commentId) => {
-    if (!userData) return alert("Login required");
+    if (!userData) return toast.error("Login required"); 
     try {
       const res = await axiosInstance.post(`/likes/toggle/comment/${commentId}`);
-      const { isLiked } = res.data.data;
-      setComments(prev => prev.map(c => c._id === commentId ? { ...c, isLiked, likesCount: isLiked ? (c.likesCount || 0) + 1 : Math.max(0, (c.likesCount || 1) - 1) } : c));
+      const { isLiked: liked } = res.data.data;
+      setComments(prev => prev.map(c => c._id === commentId ? { ...c, isLiked: liked, likesCount: liked ? (c.likesCount || 0) + 1 : Math.max(0, (c.likesCount || 1) - 1) } : c));
     } catch (err) { console.error(err); }
   };
 
   const handleDeleteComment = async (commentId) => {
-    if (!window.confirm("Delete?")) return;
+    if (!window.confirm("Delete this comment?")) return;
     try {
       await axiosInstance.delete(`/comments/c/${commentId}`);
       setComments(prev => prev.filter(c => c._id !== commentId));
-    } catch { alert("Delete failed"); }
+      toast.success("Comment removed");  
+    } catch { 
+      toast.error("Delete failed"); 
+    }
   };
 
   const handleUpdateComment = async (commentId) => {
@@ -133,7 +150,21 @@ function VideoDetail() {
       await axiosInstance.patch(`/comments/c/${commentId}`, { content: editingText });
       setComments(prev => prev.map(c => c._id === commentId ? { ...c, content: editingText } : c));
       setEditingCommentId(null);
-    } catch { alert("Update failed"); }
+      toast.success("Comment updated"); 
+    } catch { 
+      toast.error("Update failed"); 
+    }
+  };
+
+  const handleAddToPlaylist = async (playlistId) => {
+    const playlistToast = toast.loading("Adding to playlist...");
+    try {
+        await axiosInstance.patch(`/playlists/add/${videoId}/${playlistId}`);
+        setShowPlaylistModal(false);
+        toast.success("Added to pulse playlist! 📁", { id: playlistToast });  
+    } catch (error) {
+        toast.error("Already in playlist or failed", { id: playlistToast });  
+    }
   };
 
   if (!video) return <div className="h-screen bg-[#050505] flex items-center justify-center text-zinc-700 font-black italic tracking-[0.3em] animate-pulse uppercase text-xs">Syncing Pulse...</div>;
@@ -195,12 +226,10 @@ function VideoDetail() {
                   <PlusSquare size={16} /> Save
                 </button>
 
-                {/*  Three Dots Dropdown - Fully Fixed for Mobile & Web */}
                 <div className="relative group focus-within:ring-0">
                     <button className="bg-white/5 hover:bg-white/10 border border-white/5 p-3 rounded-2xl shadow-lg transition-all active:scale-90 outline-none">
                       <MoreVertical size={16} />
                     </button>
-                    {/* Positioned Right-Aligned, Opens Upwards with Max Z-Index */}
                     <div className="absolute right-0 bottom-full mb-3 w-48 bg-[#121212] border border-white/10 rounded-[1.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.8)] opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 z-[999] p-2 overflow-hidden ring-1 ring-white/5">
                         <div className="flex flex-col">
                             {userData?._id === video.owner?._id ? (
@@ -212,7 +241,7 @@ function VideoDetail() {
                                 </button>
                             ) : (
                                 <button 
-                                  onClick={(e) => { e.stopPropagation(); alert("Reported! Our team will check"); }} 
+                                  onClick={(e) => { e.stopPropagation(); toast("Reported! Our team will check", {icon: "⚠️"}); }} 
                                   className="w-full text-left px-4 py-3 text-zinc-400 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 rounded-xl transition-colors"
                                 >
                                   Report
@@ -331,7 +360,7 @@ function VideoDetail() {
               {playlists.map((p) => (
                 <button 
                   key={p._id} 
-                  onClick={() => axiosInstance.patch(`/playlists/add/${videoId}/${p._id}`).then(() => setShowPlaylistModal(false))} 
+                  onClick={() => handleAddToPlaylist(p._id)} 
                   className="w-full group flex items-center justify-between p-5 bg-white/5 hover:bg-blue-600 rounded-[1.5rem] border border-white/5 transition-all text-sm font-black uppercase tracking-tight text-left"
                 >
                   <span className="group-hover:translate-x-1 transition-transform">📁 {p.name}</span>
