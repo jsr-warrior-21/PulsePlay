@@ -23,9 +23,10 @@ function LogoutBtn() {
     return (
         <button
             onClick={logoutHandler}
-            className='flex items-center gap-2 px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-[11px] font-bold tracking-widest transition-all active:scale-95 shadow-[0_0_15px_rgba(220,38,38,0.3)]'
+            className='flex items-center gap-2 p-2.5 md:px-5 md:py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl md:rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-[0_0_15px_rgba(220,38,38,0.3)]'
+            title="Logout"
         >
-            <LogOut size={14} strokeWidth={3} />
+            <LogOut size={18} strokeWidth={3} />
             <span className="hidden md:block">Logout</span>
         </button>
     )

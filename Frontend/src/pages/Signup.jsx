@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useDispatch } from 'react-redux'
 import axiosInstance from '../api/axios'
 import { useNavigate, Link } from 'react-router-dom'
-import { Zap, User, Mail, Lock, Camera, ArrowRight, AlertCircle, Loader2 } from 'lucide-react'
+import { User, Mail, Lock, Camera, ArrowRight, AlertCircle, Loader2 } from 'lucide-react'
 
 function Signup() {
     const [formData, setFormData] = useState({
@@ -53,17 +53,43 @@ function Signup() {
                 {/* Background Glow */}
                 <div className="absolute -top-24 -left-24 w-64 h-64 bg-blue-600/10 blur-[100px] rounded-full"></div>
                 
-                {/* Header */}
-                <div className="flex flex-col items-start mb-10 relative z-10">
-                    <div className="bg-blue-600 p-3 rounded-2xl mb-4 shadow-[0_0_20px_rgba(37,99,235,0.4)]">
-                        <Zap size={24} fill="white" className="text-white" />
+                {/* 🔥 Header - Redesigned to match Header Logo */}
+                <div className="flex flex-col items-center text-center mb-10 relative z-10">
+                    <div className='relative w-16 h-16 flex items-center justify-center mb-4'>
+                        {/* Background Soft Glow */}
+                        <div className='absolute inset-0 bg-blue-600 rounded-2xl blur-xl opacity-30'></div>
+                        
+                        {/* The Icon: Abstract Play + Pulse P (Geometric Design) */}
+                        <svg viewBox="0 0 100 100" className="relative w-full h-full drop-shadow-2xl">
+                            <defs>
+                                <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stopColor="#3b82f6" />
+                                    <stop offset="100%" stopColor="#1d4ed8" />
+                                </linearGradient>
+                            </defs>
+                            {/* Smooth P-Shape Play Button */}
+                            <path 
+                                d="M35 25C35 22.2386 37.2386 20 40 20H60C71.0457 20 80 28.9543 80 40C80 51.0457 71.0457 60 60 60H45V75C45 77.7614 42.7614 80 40 80C37.2386 80 35 77.7614 35 75V25Z" 
+                                fill="url(#logoGrad)"
+                            />
+                            {/* Inner Play Triangle */}
+                            <path 
+                                d="M52 35L62 40L52 45V35Z" 
+                                fill="white" 
+                            />
+                        </svg>
                     </div>
-                    <h2 className="text-3xl md:text-4xl font-black text-white tracking-tighter italic">Create account</h2>
-                    <p className="text-zinc-500 text-[11px] font-black uppercase tracking-[0.2em] mt-2 italic">Join the pulse creator community</p>
+
+                    <h2 className="text-3xl md:text-4xl font-black text-white tracking-tighter leading-none flex items-center italic">
+                        PULSE<span className="text-blue-500 ml-1">PLAY</span>
+                    </h2>
+                    <p className="text-zinc-600 text-[9px] font-bold uppercase tracking-[0.4em] mt-2 italic">
+                        Premium Studio Creator Hub Registration
+                    </p>
                 </div>
 
                 {error && (
-                    <div className="flex items-center gap-3 text-red-400 bg-red-400/5 border border-red-400/10 p-4 rounded-2xl mb-8 text-xs font-bold leading-tight">
+                    <div className="flex items-center gap-3 text-red-400 bg-red-400/5 border border-red-400/10 p-4 rounded-2xl mb-8 text-xs font-bold leading-tight relative z-10">
                         <AlertCircle size={16} className="shrink-0" />
                         {error}
                     </div>
