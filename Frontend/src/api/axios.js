@@ -6,7 +6,7 @@ export const getSecureUrl = (url) => {
 };
 
 const axiosInstance = axios.create({
-    baseURL: "http://localhost:8000/api/v1", 
+    baseURL: import.meta.env.VITE_BACKEND_URL,
     withCredentials: true,
 });
 
@@ -15,9 +15,6 @@ axiosInstance.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
-
-        // 🔥 FIX 1: Agar request pehle se hi refresh-token ya login ki hai, toh retry mat karo
-        // Isse infinite flicker/loop ruk jayega
         if (
             originalRequest.url.includes("/refresh-token") || 
             originalRequest.url.includes("/login")
