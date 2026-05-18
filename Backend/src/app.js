@@ -7,7 +7,7 @@ import cookieParser from "cookie-parser";
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    origin: ["http://localhost:5173", "https://pulseplays.netlify.app"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: [
