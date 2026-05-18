@@ -10,6 +10,8 @@ import {
   ArrowRight,
   AlertCircle,
   Loader2,
+  Eye,      
+  EyeOff,   
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -24,13 +26,43 @@ function Signup() {
   const [coverImage, setCoverImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false); 
 
   const navigate = useNavigate();
+
+  // Helper function to calculate password strength criteria
+  const getPasswordStrength = (password) => {
+    if (!password) return { score: 0, text: "", color: "bg-zinc-800" };
+    
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+
+    switch (score) {
+      case 1: return { score, text: "Weak", color: "bg-red-500" };
+      case 2: return { score, text: "Fair", color: "bg-orange-500" };
+      case 3: return { score, text: "Good", color: "bg-yellow-500" };
+      case 4: return { score, text: "Strong", color: "bg-emerald-500" };
+      default: return { score: 0, text: "", color: "bg-zinc-800" };
+    }
+  };
+
+  const strength = getPasswordStrength(formData.password);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!avatar) {
       const msg = "Profile picture is required!";
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
+
+    // New validation guard to reject weak passwords on submission
+    if (strength.score < 3) {
+      const msg = "Please create a stronger password meeting the criteria.";
       setError(msg);
       toast.error(msg);
       return;
@@ -76,7 +108,7 @@ function Signup() {
         {/* Background Glow */}
         <div className="absolute -top-24 -left-24 w-64 h-64 bg-blue-600/10 blur-[100px] rounded-full"></div>
 
-        {/* 🔥 Header - Redesigned to match Header Logo */}
+        {/*  Header - Redesigned to match Header Logo */}
         <div className="flex flex-col items-center text-center mb-10 relative z-10">
           <div className="relative w-16 h-16 flex items-center justify-center mb-4">
             {/* Background Soft Glow */}
@@ -171,19 +203,54 @@ function Signup() {
             />
           </div>
 
+          {/* Updated Security Block with Strength Meter and Visibility Eye Toggle */}
           <div className="space-y-2 text-left">
-            <label className="text-[10px] font-black uppercase text-zinc-600 ml-2 tracking-widest">
-              Security
-            </label>
-            <input
-              type="password"
-              placeholder="Min. 8 characters"
-              className="w-full bg-black/40 border border-white/5 p-4 rounded-2xl focus:border-blue-600/50 outline-none transition-all text-sm font-medium text-white placeholder:text-zinc-700"
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
-              required
-            />
+            <div className="flex justify-between items-center">
+              <label className="text-[10px] font-black uppercase text-zinc-600 ml-2 tracking-widest">
+                Security
+              </label>
+              {strength.text && (
+                <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${strength.color}/10 text-white`}>
+                  {strength.text}
+                </span>
+              )}
+            </div>
+            <div className="relative flex items-center">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Min. 8 characters"
+                autoComplete="new-password"
+                className="w-full bg-black/40 border border-white/5 p-4 pr-12 rounded-2xl focus:border-blue-600/50 outline-none transition-all text-sm font-medium text-white placeholder:text-zinc-700"
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 text-zinc-500 hover:text-zinc-300 transition-colors focus:outline-none"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+
+            {formData.password && (
+              <div className="pt-1 px-1">
+                <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${strength.color} transition-all duration-300`}
+                    style={{ width: `${(strength.score / 4) * 100}%` }}
+                  ></div>
+                </div>
+                <ul className="text-[9px] text-zinc-500 font-medium grid grid-cols-2 gap-x-2 mt-2 ml-1 list-disc list-inside">
+                  <li className={formData.password.length >= 8 ? "text-emerald-500" : ""}>Min 8 characters</li>
+                  <li className={/[A-Z]/.test(formData.password) ? "text-emerald-500" : ""}>Uppercase letter</li>
+                  <li className={/[0-9]/.test(formData.password) ? "text-emerald-500" : ""}>One number</li>
+                  <li className={/[^A-Za-z0-9]/.test(formData.password) ? "text-emerald-500" : ""}>Special character</li>
+                </ul>
+              </div>
+            )}
           </div>
 
           {/* File Uploads */}
