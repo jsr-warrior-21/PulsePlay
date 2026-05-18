@@ -93,11 +93,9 @@ function Signup() {
     } catch (err) {
       let errMsg = "Registration failed. Try again.";
       
-      // Specifically capture 409 Conflict error codes from backend
       if (err.response?.status === 409) {
         errMsg = err.response?.data?.message || "Username or Email is already taken.";
         
-        // Target dynamic toast error alerts based on conflict type
         if (errMsg.toLowerCase().includes("email")) {
           toast.error("This email is already registered!");
         } else if (errMsg.toLowerCase().includes("username")) {
