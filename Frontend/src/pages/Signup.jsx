@@ -91,12 +91,26 @@ function Signup() {
         toast.error(errorMsg);
       }
     } catch (err) {
-      const errMsg =
-        err.response?.data?.message ||
-        err.message ||
-        "Registration failed. Try again.";
+      let errMsg = "Registration failed. Try again.";
+      
+      // Specifically capture 409 Conflict error codes from backend
+      if (err.response?.status === 409) {
+        errMsg = err.response?.data?.message || "Username or Email is already taken.";
+        
+        // Target dynamic toast error alerts based on conflict type
+        if (errMsg.toLowerCase().includes("email")) {
+          toast.error("This email is already registered!");
+        } else if (errMsg.toLowerCase().includes("username")) {
+          toast.error("This username is already taken!");
+        } else {
+          toast.error(errMsg);
+        }
+      } else {
+        errMsg = err.response?.data?.message || err.message || errMsg;
+        toast.error(errMsg);
+      }
+      
       setError(errMsg);
-      toast.error(errMsg);
     } finally {
       setLoading(false);
     }
@@ -108,7 +122,7 @@ function Signup() {
         {/* Background Glow */}
         <div className="absolute -top-24 -left-24 w-64 h-64 bg-blue-600/10 blur-[100px] rounded-full"></div>
 
-        {/*  Header - Redesigned to match Header Logo */}
+        {/* Header - Redesigned to match Header Logo */}
         <div className="flex flex-col items-center text-center mb-10 relative z-10">
           <div className="relative w-16 h-16 flex items-center justify-center mb-4">
             {/* Background Soft Glow */}
@@ -179,7 +193,9 @@ function Signup() {
               <input
                 type="text"
                 placeholder="unique_handle"
-                className="w-full bg-black/40 border border-white/5 p-4 rounded-2xl focus:border-blue-600/50 outline-none transition-all text-sm font-medium text-white placeholder:text-zinc-700"
+                className={`w-full bg-black/40 border p-4 rounded-2xl focus:border-blue-600/50 outline-none transition-all text-sm font-medium text-white placeholder:text-zinc-700 ${
+                  error.toLowerCase().includes("username") ? "border-red-500/50" : "border-white/5"
+                }`}
                 onChange={(e) =>
                   setFormData({ ...formData, username: e.target.value })
                 }
@@ -195,7 +211,9 @@ function Signup() {
             <input
               type="email"
               placeholder="you@example.com"
-              className="w-full bg-black/40 border border-white/5 p-4 rounded-2xl focus:border-blue-600/50 outline-none transition-all text-sm font-medium text-white placeholder:text-zinc-700"
+              className={`w-full bg-black/40 border p-4 rounded-2xl focus:border-blue-600/50 outline-none transition-all text-sm font-medium text-white placeholder:text-zinc-700 ${
+                error.toLowerCase().includes("email") ? "border-red-500/50" : "border-white/5"
+              }`}
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
               }
